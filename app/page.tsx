@@ -12,7 +12,9 @@ import {
   formatDiscordPost,
   normalizeResource,
   toResourceFormPayload,
+  toSupabaseResourcePayload,
   type Resource,
+  type ResourceRow,
   type ResourceFormData
 } from "@/lib/resources";
 import { hasSupabaseConfig, supabase } from "@/lib/supabase";
@@ -67,7 +69,7 @@ export default function Home() {
       setResources(demoResources);
       setIsDemoMode(true);
     } else {
-      setResources(((data ?? []) as Resource[]).map(normalizeResource));
+      setResources(((data ?? []) as ResourceRow[]).map(normalizeResource));
       setIsDemoMode(false);
     }
 
@@ -155,11 +157,11 @@ export default function Home() {
     }
 
     setIsSaving(true);
+    const newResource = toResourceFormPayload(form);
 
     const optimisticResource: Resource = {
       id: `local-${crypto.randomUUID()}`,
-      ...toResourceFormPayload(form),
-      created_at: new Date().toISOString()
+      ...newResource
     };
 
     if (!supabase || isDemoMode) {
@@ -177,7 +179,7 @@ export default function Home() {
 
     const { data, error } = await supabase
       .from("resources")
-      .insert(toResourceFormPayload(form))
+      .insert(toSupabaseResourcePayload(newResource))
       .select("*")
       .single();
 
@@ -187,7 +189,7 @@ export default function Home() {
     } else if (data) {
       setResources((currentResources) =>
         currentResources.map((resource) =>
-          resource.id === optimisticResource.id ? normalizeResource(data as Resource) : resource
+          resource.id === optimisticResource.id ? normalizeResource(data as ResourceRow) : resource
         )
       );
       setToast("Resource added.");

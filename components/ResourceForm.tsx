@@ -77,6 +77,17 @@ export function ResourceForm({
           />
         </label>
 
+        <label htmlFor="posted-by" className="grid gap-2 text-sm font-medium text-muted">
+          Posted By
+          <input
+            id="posted-by"
+            value={form.postedBy}
+            onChange={(event) => onChange("postedBy", event.target.value)}
+            className={inputClass}
+            placeholder="BuildNest Member"
+          />
+        </label>
+
         <label htmlFor="link" className="grid gap-2 text-sm font-medium text-muted">
           Link
           <input

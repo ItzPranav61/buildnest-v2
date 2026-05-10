@@ -1,4 +1,9 @@
-import { categoryBadgeClasses, statusBadgeClasses, type Resource } from "@/lib/resources";
+import {
+  categoryBadgeClasses,
+  formatRelativeTime,
+  statusBadgeClasses,
+  type Resource
+} from "@/lib/resources";
 
 type ResourceCardProps = {
   resource: Resource;
@@ -40,6 +45,10 @@ export function ResourceCard({ resource, isDeleting, onCopy, onDelete }: Resourc
         <h3 className="break-words text-xl font-bold leading-snug text-ink">{resource.title}</h3>
 
         {resource.type && <p className="mt-2 break-words text-sm font-medium text-muted">{resource.type}</p>}
+
+        <p className="mt-2 break-words text-xs font-medium leading-5 text-muted">
+          Posted by {resource.postedBy} • {formatRelativeTime(resource.createdAt)}
+        </p>
 
         {resource.description && (
           <p className="mt-4 line-clamp-4 break-words text-sm leading-7 text-muted">

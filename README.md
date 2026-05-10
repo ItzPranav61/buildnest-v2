@@ -12,6 +12,7 @@ The app is intentionally simple: add resources, browse/filter them, copy a Disco
 - Search by title, description, or category
 - Filter by category and status
 - Status system: `Open`, `Upcoming`, `Expired`
+- Community metadata: posted-by label and lightweight relative time
 - Copy formatted Discord posts
 - Loading skeletons, empty states, inline form validation, and toast notifications
 
@@ -50,8 +51,27 @@ create table resources (
   difficulty text,
   india_friendly text,
   status text default 'open',
+  posted_by text default 'BuildNest Member',
   created_at timestamp with time zone default now()
 );
+```
+
+If your table already exists, run this migration:
+
+```sql
+alter table resources
+add column if not exists posted_by text default 'BuildNest Member';
+
+alter table resources
+add column if not exists created_at timestamp with time zone default now();
+
+update resources
+set posted_by = 'BuildNest Member'
+where posted_by is null or posted_by = '';
+
+update resources
+set created_at = now()
+where created_at is null;
 ```
 
 For this no-auth MVP, enable simple development policies:
@@ -75,13 +95,13 @@ using (true);
 Optional seed data:
 
 ```sql
-insert into resources (title, category, type, link, description, difficulty, india_friendly, status)
+insert into resources (title, category, type, link, description, difficulty, india_friendly, status, posted_by)
 values
-  ('GitHub Student Developer Pack', 'Freebie', 'Student benefits', 'https://education.github.com/pack', 'Free developer tools, credits, and learning resources for verified students.', 'Beginner', 'Yes', 'Open'),
-  ('Google Developer Student Clubs', 'Community', 'Campus community', 'https://gdsc.community.dev/', 'Student-led developer communities with events, projects, and peer learning.', 'Beginner', 'Yes', 'Open'),
-  ('Google Summer of Code', 'Open Source', 'Open source program', 'https://summerofcode.withgoogle.com/', 'A global program where contributors work with open source organizations.', 'Advanced', 'Yes', 'Upcoming'),
-  ('MLH Fellowship', 'Internship', 'Remote fellowship', 'https://fellowship.mlh.io/', 'A remote fellowship for developers to contribute to real projects in teams.', 'Intermediate', 'Yes', 'Open'),
-  ('Kaggle Competitions', 'Hackathon', 'Data science challenge', 'https://www.kaggle.com/competitions', 'Competitions for practicing machine learning, analytics, and problem solving.', 'Intermediate', 'Yes', 'Open');
+  ('GitHub Student Developer Pack', 'Freebie', 'Student benefits', 'https://education.github.com/pack', 'Free developer tools, credits, and learning resources for verified students.', 'Beginner', 'Yes', 'Open', 'BuildNest Member'),
+  ('Google Developer Student Clubs', 'Community', 'Campus community', 'https://gdsc.community.dev/', 'Student-led developer communities with events, projects, and peer learning.', 'Beginner', 'Yes', 'Open', 'BuildNest Member'),
+  ('Google Summer of Code', 'Open Source', 'Open source program', 'https://summerofcode.withgoogle.com/', 'A global program where contributors work with open source organizations.', 'Advanced', 'Yes', 'Upcoming', 'BuildNest Member'),
+  ('MLH Fellowship', 'Internship', 'Remote fellowship', 'https://fellowship.mlh.io/', 'A remote fellowship for developers to contribute to real projects in teams.', 'Intermediate', 'Yes', 'Open', 'BuildNest Member'),
+  ('Kaggle Competitions', 'Hackathon', 'Data science challenge', 'https://www.kaggle.com/competitions', 'Competitions for practicing machine learning, analytics, and problem solving.', 'Intermediate', 'Yes', 'Open', 'BuildNest Member');
 ```
 
 ## Demo Mode

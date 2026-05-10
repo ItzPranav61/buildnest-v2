@@ -25,10 +25,40 @@ export type Resource = {
   difficulty: string | null;
   india_friendly: string | null;
   status: Status;
-  created_at: string | null;
+  postedBy: string;
+  createdAt: string;
 };
 
-export type NewResource = Omit<Resource, "id" | "created_at">;
+export type ResourceRow = {
+  id: string;
+  title: string;
+  category: string;
+  type: string | null;
+  link: string | null;
+  description: string | null;
+  difficulty: string | null;
+  india_friendly: string | null;
+  status: string | null;
+  posted_by?: string | null;
+  created_at?: string | null;
+  postedBy?: string | null;
+  createdAt?: string | null;
+};
+
+export type NewResource = Omit<Resource, "id">;
+
+export type NewResourcePayload = {
+  title: string;
+  category: Category;
+  type: string | null;
+  link: string | null;
+  description: string | null;
+  difficulty: string | null;
+  india_friendly: string | null;
+  status: Status;
+  posted_by: string;
+  created_at: string;
+};
 
 export type ResourceFormData = {
   title: string;
@@ -39,7 +69,10 @@ export type ResourceFormData = {
   difficulty: string;
   india_friendly: string;
   status: Status;
+  postedBy: string;
 };
+
+export const defaultPostedBy = "BuildNest Member";
 
 export const emptyResourceForm: ResourceFormData = {
   title: "",
@@ -49,7 +82,8 @@ export const emptyResourceForm: ResourceFormData = {
   description: "",
   difficulty: "",
   india_friendly: "Yes",
-  status: "Open"
+  status: "Open",
+  postedBy: defaultPostedBy
 };
 
 export const categoryBadgeClasses: Record<Category, string> = {
@@ -80,7 +114,8 @@ export const demoResources: Resource[] = [
     difficulty: "Beginner",
     india_friendly: "Yes",
     status: "Open",
-    created_at: new Date().toISOString()
+    postedBy: defaultPostedBy,
+    createdAt: new Date().toISOString()
   },
   {
     id: "demo-google-developer-student-clubs",
@@ -92,7 +127,8 @@ export const demoResources: Resource[] = [
     difficulty: "Beginner",
     india_friendly: "Yes",
     status: "Open",
-    created_at: new Date().toISOString()
+    postedBy: defaultPostedBy,
+    createdAt: new Date().toISOString()
   },
   {
     id: "demo-google-summer-of-code",
@@ -104,7 +140,8 @@ export const demoResources: Resource[] = [
     difficulty: "Advanced",
     india_friendly: "Yes",
     status: "Upcoming",
-    created_at: new Date().toISOString()
+    postedBy: defaultPostedBy,
+    createdAt: new Date().toISOString()
   },
   {
     id: "demo-mlh-fellowship",
@@ -116,7 +153,8 @@ export const demoResources: Resource[] = [
     difficulty: "Intermediate",
     india_friendly: "Yes",
     status: "Open",
-    created_at: new Date().toISOString()
+    postedBy: defaultPostedBy,
+    createdAt: new Date().toISOString()
   },
   {
     id: "demo-kaggle-competitions",
@@ -128,7 +166,8 @@ export const demoResources: Resource[] = [
     difficulty: "Intermediate",
     india_friendly: "Yes",
     status: "Open",
-    created_at: new Date().toISOString()
+    postedBy: defaultPostedBy,
+    createdAt: new Date().toISOString()
   }
 ];
 
@@ -150,11 +189,23 @@ export function normalizeStatus(status: string | null | undefined): Status {
   return "Open";
 }
 
-export function normalizeResource(resource: Resource): Resource {
+export function normalizeResource(resource: Resource | ResourceRow): Resource {
   return {
-    ...resource,
+    id: resource.id,
+    title: resource.title,
     category: normalizeCategory(resource.category),
-    status: normalizeStatus(resource.status)
+    type: resource.type ?? null,
+    link: resource.link ?? null,
+    description: resource.description ?? null,
+    difficulty: resource.difficulty ?? null,
+    india_friendly: resource.india_friendly ?? null,
+    status: normalizeStatus(resource.status),
+    postedBy:
+      ("postedBy" in resource ? resource.postedBy : resource.posted_by)?.trim() ||
+      defaultPostedBy,
+    createdAt:
+      ("createdAt" in resource ? resource.createdAt : resource.created_at) ||
+      new Date().toISOString()
   };
 }
 
@@ -167,8 +218,52 @@ export function toResourceFormPayload(form: ResourceFormData): NewResource {
     description: form.description.trim() || null,
     difficulty: form.difficulty.trim() || null,
     india_friendly: form.india_friendly.trim() || null,
-    status: form.status
+    status: form.status,
+    postedBy: form.postedBy.trim() || defaultPostedBy,
+    createdAt: new Date().toISOString()
   };
+}
+
+export function toSupabaseResourcePayload(resource: NewResource): NewResourcePayload {
+  return {
+    title: resource.title,
+    category: resource.category,
+    type: resource.type,
+    link: resource.link,
+    description: resource.description,
+    difficulty: resource.difficulty,
+    india_friendly: resource.india_friendly,
+    status: resource.status,
+    posted_by: resource.postedBy,
+    created_at: resource.createdAt
+  };
+}
+
+export function formatRelativeTime(timestamp: string) {
+  const createdTime = new Date(timestamp).getTime();
+
+  if (Number.isNaN(createdTime)) {
+    return "just now";
+  }
+
+  const diffInSeconds = Math.max(0, Math.floor((Date.now() - createdTime) / 1000));
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  const diffInDays = Math.floor(diffInHours / 24);
+
+  if (diffInMinutes < 1) {
+    return "just now";
+  }
+
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes}m ago`;
+  }
+
+  if (diffInHours < 24) {
+    return `${diffInHours}h ago`;
+  }
+
+  return `${diffInDays}d ago`;
 }
 
 export function formatDiscordPost(resource: Resource) {
