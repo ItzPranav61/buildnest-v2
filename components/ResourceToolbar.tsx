@@ -1,16 +1,18 @@
-import { categories, statuses } from "@/lib/resources";
+import { categories, dateFilters, statuses, type DateFilter } from "@/lib/resources";
 
 type ResourceToolbarProps = {
   resourceCount: number;
   totalCount: number;
   selectedCategory: string;
   selectedStatus: string;
+  selectedDateFilter: DateFilter;
   searchQuery: string;
   savedOnly: boolean;
   savedCount: number;
   activeFilterCount: number;
   onCategoryChange: (category: string) => void;
   onStatusChange: (status: string) => void;
+  onDateFilterChange: (dateFilter: DateFilter) => void;
   onSearchChange: (query: string) => void;
   onSavedOnlyChange: (savedOnly: boolean) => void;
   onClearFilters: () => void;
@@ -24,12 +26,14 @@ export function ResourceToolbar({
   totalCount,
   selectedCategory,
   selectedStatus,
+  selectedDateFilter,
   searchQuery,
   savedOnly,
   savedCount,
   activeFilterCount,
   onCategoryChange,
   onStatusChange,
+  onDateFilterChange,
   onSearchChange,
   onSavedOnlyChange,
   onClearFilters
@@ -59,7 +63,7 @@ export function ResourceToolbar({
         </div>
       </div>
 
-      <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_11rem_10rem_9rem]">
+      <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_10rem_9rem_10rem_9rem]">
         <label htmlFor="resource-search" className="grid gap-2 text-sm font-semibold text-ink">
           Search
           <input
@@ -97,6 +101,20 @@ export function ResourceToolbar({
             <option>All</option>
             {statuses.map((status) => (
               <option key={status}>{status}</option>
+            ))}
+          </select>
+        </label>
+
+        <label htmlFor="date-filter" className="grid gap-2 text-sm font-semibold text-ink">
+          Dates
+          <select
+            id="date-filter"
+            value={selectedDateFilter}
+            onChange={(event) => onDateFilterChange(event.target.value as DateFilter)}
+            className={controlClass}
+          >
+            {dateFilters.map((dateFilter) => (
+              <option key={dateFilter}>{dateFilter}</option>
             ))}
           </select>
         </label>

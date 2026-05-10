@@ -99,6 +99,41 @@ export function ResourceForm({
           />
         </label>
 
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label htmlFor="start-date" className="grid gap-2 text-sm font-medium text-muted">
+            Start Date
+            <input
+              id="start-date"
+              type="date"
+              value={form.startDate}
+              onChange={(event) => onChange("startDate", event.target.value)}
+              className={inputClass}
+            />
+          </label>
+
+          <label htmlFor="end-date" className="grid gap-2 text-sm font-medium text-muted">
+            End Date
+            <input
+              id="end-date"
+              type="date"
+              value={form.endDate}
+              onChange={(event) => onChange("endDate", event.target.value)}
+              className={inputClass}
+            />
+          </label>
+
+          <label htmlFor="deadline-date" className="grid gap-2 text-sm font-medium text-muted">
+            Deadline
+            <input
+              id="deadline-date"
+              type="date"
+              value={form.deadlineDate}
+              onChange={(event) => onChange("deadlineDate", event.target.value)}
+              className={inputClass}
+            />
+          </label>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2">
           <label htmlFor="category" className="grid gap-2 text-sm font-semibold text-ink">
             Category <span className="sr-only">required</span>

@@ -10,9 +10,12 @@ import {
   demoResources,
   emptyResourceForm,
   formatDiscordPost,
+  getResourceSortScore,
+  matchesDateFilter,
   normalizeResource,
   toResourceFormPayload,
   toSupabaseResourcePayload,
+  type DateFilter,
   type Resource,
   type ResourceRow,
   type ResourceFormData,
@@ -30,6 +33,7 @@ export default function Home() {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
+  const [selectedDateFilter, setSelectedDateFilter] = useState<DateFilter>("All Dates");
   const [searchQuery, setSearchQuery] = useState("");
   const [savedOnly, setSavedOnly] = useState(false);
   const [savedResourceIds, setSavedResourceIds] = useState<string[]>([]);
@@ -89,6 +93,7 @@ export default function Home() {
       const matchesCategory =
         selectedCategory === "All" || resource.category === selectedCategory;
       const matchesStatus = selectedStatus === "All" || resource.status === selectedStatus;
+      const matchesDates = matchesDateFilter(resource, selectedDateFilter);
       const matchesSaved = !savedOnly || savedResourceIds.includes(resource.id);
 
       const searchableText = [
@@ -100,18 +105,27 @@ export default function Home() {
         .join(" ")
         .toLowerCase();
 
-      return matchesCategory && matchesStatus && matchesSaved && (!query || searchableText.includes(query));
+      return matchesCategory && matchesStatus && matchesDates && matchesSaved && (!query || searchableText.includes(query));
+    }).sort((firstResource, secondResource) => {
+      const scoreDifference = getResourceSortScore(firstResource) - getResourceSortScore(secondResource);
+
+      if (scoreDifference !== 0) {
+        return scoreDifference;
+      }
+
+      return new Date(secondResource.createdAt).getTime() - new Date(firstResource.createdAt).getTime();
     });
-  }, [resources, savedOnly, savedResourceIds, searchQuery, selectedCategory, selectedStatus]);
+  }, [resources, savedOnly, savedResourceIds, searchQuery, selectedCategory, selectedDateFilter, selectedStatus]);
 
   const activeFilterCount = useMemo(() => {
     return [
       searchQuery.trim(),
       selectedCategory !== "All",
       selectedStatus !== "All",
+      selectedDateFilter !== "All Dates",
       savedOnly
     ].filter(Boolean).length;
-  }, [savedOnly, searchQuery, selectedCategory, selectedStatus]);
+  }, [savedOnly, searchQuery, selectedCategory, selectedDateFilter, selectedStatus]);
 
   function readSavedResourceIds() {
     try {
@@ -178,6 +192,7 @@ export default function Home() {
     setSearchQuery("");
     setSelectedCategory("All");
     setSelectedStatus("All");
+    setSelectedDateFilter("All Dates");
     setSavedOnly(false);
   }
 
@@ -400,12 +415,14 @@ export default function Home() {
             totalCount={resources.length}
             selectedCategory={selectedCategory}
             selectedStatus={selectedStatus}
+            selectedDateFilter={selectedDateFilter}
             searchQuery={searchQuery}
             savedOnly={savedOnly}
             savedCount={savedResourceIds.length}
             activeFilterCount={activeFilterCount}
             onCategoryChange={setSelectedCategory}
             onStatusChange={setSelectedStatus}
+            onDateFilterChange={setSelectedDateFilter}
             onSearchChange={setSearchQuery}
             onSavedOnlyChange={setSavedOnly}
             onClearFilters={clearFilters}

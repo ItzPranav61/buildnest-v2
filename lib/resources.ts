@@ -17,6 +17,10 @@ export type Status = (typeof statuses)[number];
 
 export const creationStatuses = ["Active", "Upcoming"] as const;
 
+export const dateFilters = ["All Dates", "Upcoming", "Ending Soon", "Deadline Passed"] as const;
+
+export type DateFilter = (typeof dateFilters)[number];
+
 export type Resource = {
   id: string;
   title: string;
@@ -29,6 +33,10 @@ export type Resource = {
   status: Status;
   postedBy: string;
   createdAt: string;
+  startDate: string | null;
+  endDate: string | null;
+  deadlineDate: string | null;
+  featured?: boolean;
 };
 
 export type ResourceRow = {
@@ -43,8 +51,15 @@ export type ResourceRow = {
   status: string | null;
   posted_by?: string | null;
   created_at?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  deadline_date?: string | null;
   postedBy?: string | null;
   createdAt?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  deadlineDate?: string | null;
+  featured?: boolean | null;
 };
 
 export type NewResource = Omit<Resource, "id">;
@@ -60,6 +75,9 @@ export type NewResourcePayload = {
   status: Status;
   posted_by: string;
   created_at: string;
+  start_date: string | null;
+  end_date: string | null;
+  deadline_date: string | null;
 };
 
 export type ResourceFormData = {
@@ -72,6 +90,9 @@ export type ResourceFormData = {
   india_friendly: string;
   status: Status;
   postedBy: string;
+  startDate: string;
+  endDate: string;
+  deadlineDate: string;
 };
 
 export const defaultPostedBy = "BuildNest Member";
@@ -85,8 +106,17 @@ export const emptyResourceForm: ResourceFormData = {
   difficulty: "",
   india_friendly: "Yes",
   status: "Active",
-  postedBy: defaultPostedBy
+  postedBy: defaultPostedBy,
+  startDate: "",
+  endDate: "",
+  deadlineDate: ""
 };
+
+function dateOffset(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
 
 export const categoryBadgeClasses: Record<Category, string> = {
   Internship: "border-[#6D94C5]/35 bg-[#CBDCEB] text-ink",
@@ -117,7 +147,10 @@ export const demoResources: Resource[] = [
     india_friendly: "Yes",
     status: "Active",
     postedBy: defaultPostedBy,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    startDate: null,
+    endDate: null,
+    deadlineDate: null
   },
   {
     id: "demo-google-developer-student-clubs",
@@ -130,7 +163,10 @@ export const demoResources: Resource[] = [
     india_friendly: "Yes",
     status: "Active",
     postedBy: defaultPostedBy,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    startDate: dateOffset(12),
+    endDate: dateOffset(13),
+    deadlineDate: null
   },
   {
     id: "demo-google-summer-of-code",
@@ -143,7 +179,10 @@ export const demoResources: Resource[] = [
     india_friendly: "Yes",
     status: "Upcoming",
     postedBy: defaultPostedBy,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    startDate: dateOffset(30),
+    endDate: dateOffset(120),
+    deadlineDate: dateOffset(21)
   },
   {
     id: "demo-mlh-fellowship",
@@ -156,7 +195,10 @@ export const demoResources: Resource[] = [
     india_friendly: "Yes",
     status: "Expired",
     postedBy: defaultPostedBy,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    startDate: dateOffset(-30),
+    endDate: dateOffset(-2),
+    deadlineDate: dateOffset(-7)
   },
   {
     id: "demo-kaggle-competitions",
@@ -169,7 +211,10 @@ export const demoResources: Resource[] = [
     india_friendly: "Yes",
     status: "Active",
     postedBy: defaultPostedBy,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    startDate: dateOffset(2),
+    endDate: dateOffset(6),
+    deadlineDate: dateOffset(6)
   }
 ];
 
@@ -207,7 +252,12 @@ export function normalizeResource(resource: Resource | ResourceRow): Resource {
       defaultPostedBy,
     createdAt:
       ("createdAt" in resource ? resource.createdAt : resource.created_at) ||
-      new Date().toISOString()
+      new Date().toISOString(),
+    startDate: ("startDate" in resource ? resource.startDate : resource.start_date) || null,
+    endDate: ("endDate" in resource ? resource.endDate : resource.end_date) || null,
+    deadlineDate:
+      ("deadlineDate" in resource ? resource.deadlineDate : resource.deadline_date) || null,
+    featured: Boolean(resource.featured)
   };
 }
 
@@ -222,7 +272,10 @@ export function toResourceFormPayload(form: ResourceFormData): NewResource {
     india_friendly: form.india_friendly.trim() || null,
     status: form.status,
     postedBy: form.postedBy.trim() || defaultPostedBy,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    startDate: form.startDate || null,
+    endDate: form.endDate || null,
+    deadlineDate: form.deadlineDate || null
   };
 }
 
@@ -237,8 +290,138 @@ export function toSupabaseResourcePayload(resource: NewResource): NewResourcePay
     india_friendly: resource.india_friendly,
     status: resource.status,
     posted_by: resource.postedBy,
-    created_at: resource.createdAt
+    created_at: resource.createdAt,
+    start_date: resource.startDate,
+    end_date: resource.endDate,
+    deadline_date: resource.deadlineDate
   };
+}
+
+function parseDateOnly(dateValue: string | null | undefined) {
+  if (!dateValue) {
+    return null;
+  }
+
+  const [year, month, day] = dateValue.slice(0, 10).split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+}
+
+function todayStart() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+export function isDatePassed(dateValue: string | null | undefined) {
+  const date = parseDateOnly(dateValue);
+  return Boolean(date && date < todayStart());
+}
+
+export function isResourceDatePassed(resource: Resource) {
+  return isDatePassed(resource.deadlineDate) || isDatePassed(resource.endDate);
+}
+
+export function isResourceEndingSoon(resource: Resource) {
+  const today = todayStart();
+  const nextWeek = new Date(today);
+  nextWeek.setDate(today.getDate() + 7);
+
+  return [resource.deadlineDate, resource.endDate].some((dateValue) => {
+    const date = parseDateOnly(dateValue);
+    return Boolean(date && date >= today && date <= nextWeek);
+  });
+}
+
+export function isResourceUpcoming(resource: Resource) {
+  const startDate = parseDateOnly(resource.startDate);
+  return resource.status === "Upcoming" || Boolean(startDate && startDate > todayStart());
+}
+
+export function matchesDateFilter(resource: Resource, dateFilter: DateFilter) {
+  if (dateFilter === "Upcoming") {
+    return isResourceUpcoming(resource);
+  }
+
+  if (dateFilter === "Ending Soon") {
+    return isResourceEndingSoon(resource);
+  }
+
+  if (dateFilter === "Deadline Passed") {
+    return isResourceDatePassed(resource);
+  }
+
+  return true;
+}
+
+export function getResourceSortScore(resource: Resource) {
+  if (resource.featured) {
+    return 0;
+  }
+
+  if (resource.status === "Active") {
+    return isResourceEndingSoon(resource) ? 1 : 2;
+  }
+
+  if (resource.status === "Upcoming" || isResourceUpcoming(resource)) {
+    return 3;
+  }
+
+  return 4;
+}
+
+export function formatDateLabel(dateValue: string | null | undefined) {
+  const date = parseDateOnly(dateValue);
+
+  if (!date) {
+    return null;
+  }
+
+  const day = date.getDate();
+  const month = date.toLocaleString("en-GB", { month: "short" });
+  const year = date.getFullYear();
+
+  return `${day} ${month} ${year}`;
+}
+
+function formatDateWithoutYear(dateValue: string) {
+  const date = parseDateOnly(dateValue);
+
+  if (!date) {
+    return null;
+  }
+
+  const day = date.getDate();
+  const month = date.toLocaleString("en-GB", { month: "short" });
+
+  return `${day} ${month}`;
+}
+
+export function formatTimelineLabel(resource: Resource) {
+  if (resource.startDate && resource.endDate) {
+    const startDate = parseDateOnly(resource.startDate);
+    const endDate = parseDateOnly(resource.endDate);
+    const startLabel = startDate && endDate && startDate.getFullYear() === endDate.getFullYear()
+      ? formatDateWithoutYear(resource.startDate)
+      : formatDateLabel(resource.startDate);
+    const endLabel = formatDateLabel(resource.endDate);
+
+    return startLabel && endLabel ? `${startLabel} - ${endLabel}` : null;
+  }
+
+  if (resource.startDate) {
+    return `Starts: ${formatDateLabel(resource.startDate)}`;
+  }
+
+  if (resource.endDate) {
+    return `Ends: ${formatDateLabel(resource.endDate)}`;
+  }
+
+  return null;
 }
 
 export function formatRelativeTime(timestamp: string) {
@@ -269,12 +452,17 @@ export function formatRelativeTime(timestamp: string) {
 }
 
 export function formatDiscordPost(resource: Resource) {
+  const timelineLabel = formatTimelineLabel(resource);
+  const deadlineLabel = formatDateLabel(resource.deadlineDate);
+
   return [
     `📌 ${resource.title}`,
     "",
     `🧩 Category: ${resource.category}`,
     resource.difficulty ? `📈 Difficulty: ${resource.difficulty}` : null,
     `📍 Status: ${resource.status}`,
+    timelineLabel ? `🗓️ Timeline: ${timelineLabel}` : null,
+    deadlineLabel ? `⏳ Deadline: ${deadlineLabel}` : null,
     resource.india_friendly === "Yes"
       ? "🇮🇳 India Friendly"
       : resource.india_friendly

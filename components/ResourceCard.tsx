@@ -1,6 +1,9 @@
 import {
   categoryBadgeClasses,
+  formatDateLabel,
   formatRelativeTime,
+  formatTimelineLabel,
+  isResourceDatePassed,
   statusBadgeClasses,
   type Resource,
   type Status
@@ -30,6 +33,9 @@ export function ResourceCard({
   const isExpired = resource.status === "Expired";
   const nextLifecycleStatus: Status = isExpired ? "Active" : "Expired";
   const lifecycleLabel = isExpired ? "Mark Active" : "Mark Expired";
+  const timelineLabel = formatTimelineLabel(resource);
+  const deadlineLabel = formatDateLabel(resource.deadlineDate);
+  const datePassed = isResourceDatePassed(resource);
 
   return (
     <article
@@ -75,6 +81,26 @@ export function ResourceCard({
         <p className="mt-2 break-words text-xs font-medium leading-5 text-muted">
           Posted by {resource.postedBy} &bull; {formatRelativeTime(resource.createdAt)}
         </p>
+
+        {(timelineLabel || deadlineLabel) && (
+          <div className="mt-4 rounded-lg border border-line bg-page px-3.5 py-3 text-xs font-medium leading-5 text-muted">
+            {timelineLabel && (
+              <p className="break-words">
+                <span className="font-semibold text-ink">Timeline:</span> {timelineLabel}
+              </p>
+            )}
+            {deadlineLabel && (
+              <p className="mt-1 break-words">
+                <span className="font-semibold text-ink">Deadline:</span> {deadlineLabel}
+              </p>
+            )}
+            {datePassed && resource.status !== "Expired" && (
+              <p className="mt-2 break-words text-danger">
+                Date passed — consider marking expired
+              </p>
+            )}
+          </div>
+        )}
 
         {resource.description && (
           <p className="mt-4 line-clamp-4 break-words text-sm leading-7 text-muted">
