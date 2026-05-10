@@ -35,6 +35,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
   const [toast, setToast] = useState("");
   const [isDemoMode, setIsDemoMode] = useState(!hasSupabaseConfig);
 
@@ -296,6 +297,49 @@ export default function Home() {
     setDeletingId(null);
   }
 
+  async function markResourceExpired(id: string) {
+    if (statusUpdatingId) {
+      return;
+    }
+
+    setStatusUpdatingId(id);
+    const resourceToUpdate = resources.find((resource) => resource.id === id);
+
+    setResources((currentResources) =>
+      currentResources.map((resource) =>
+        resource.id === id ? { ...resource, status: "Expired" } : resource
+      )
+    );
+
+    if (!supabase || isDemoMode) {
+      setToast("Resource marked expired.");
+      setStatusUpdatingId(null);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("resources")
+      .update({ status: "Expired" })
+      .eq("id", id);
+
+    if (error) {
+      if (resourceToUpdate) {
+        setResources((currentResources) =>
+          currentResources.map((resource) =>
+            resource.id === id ? resourceToUpdate : resource
+          )
+        );
+      }
+
+      setIsDemoMode(true);
+      setToast("Supabase unavailable. Using demo mode.");
+    } else {
+      setToast("Resource marked expired.");
+    }
+
+    setStatusUpdatingId(null);
+  }
+
   async function copyDiscordPost(resource: Resource) {
     try {
       await navigator.clipboard.writeText(formatDiscordPost(resource));
@@ -399,7 +443,9 @@ export default function Home() {
                     resource={resource}
                     isSaved={savedResourceIds.includes(resource.id)}
                     isDeleting={deletingId === resource.id}
+                    isStatusUpdating={statusUpdatingId === resource.id}
                     onToggleSave={toggleSavedResource}
+                    onMarkExpired={markResourceExpired}
                     onCopy={copyDiscordPost}
                     onDelete={deleteResource}
                   />

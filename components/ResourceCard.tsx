@@ -9,7 +9,9 @@ type ResourceCardProps = {
   resource: Resource;
   isSaved: boolean;
   isDeleting: boolean;
+  isStatusUpdating: boolean;
   onToggleSave: (id: string) => void;
+  onMarkExpired: (id: string) => void;
   onCopy: (resource: Resource) => void;
   onDelete: (id: string) => void;
 };
@@ -18,12 +20,22 @@ export function ResourceCard({
   resource,
   isSaved,
   isDeleting,
+  isStatusUpdating,
   onToggleSave,
+  onMarkExpired,
   onCopy,
   onDelete
 }: ResourceCardProps) {
+  const isExpired = resource.status === "Expired";
+
   return (
-    <article className="flex min-h-72 w-full min-w-0 flex-col rounded-xl border border-[#E2D8C9] bg-[#FFFDFC] p-5 text-ink shadow-[0_16px_36px_rgba(36,48,65,0.13)] transition hover:-translate-y-0.5 hover:border-[#D3C4AF] hover:shadow-[0_20px_42px_rgba(36,48,65,0.17)] sm:p-6">
+    <article
+      className={`flex min-h-72 w-full min-w-0 flex-col rounded-xl border p-5 text-ink shadow-[0_16px_36px_rgba(36,48,65,0.13)] transition hover:-translate-y-0.5 hover:border-[#D3C4AF] hover:shadow-[0_20px_42px_rgba(36,48,65,0.17)] sm:p-6 ${
+        isExpired
+          ? "border-[#E7DED0] bg-[#FBF7F0] opacity-80"
+          : "border-[#E2D8C9] bg-[#FFFDFC]"
+      }`}
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <span
@@ -81,7 +93,7 @@ export function ResourceCard({
         )}
       </div>
 
-      <div className="mt-7 grid min-w-0 gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+      <div className="mt-7 grid min-w-0 gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center">
         {resource.link ? (
           <a
             href={resource.link}
@@ -102,6 +114,17 @@ export function ResourceCard({
         >
           Copy Discord Post
         </button>
+
+        {!isExpired && (
+          <button
+            type="button"
+            disabled={isStatusUpdating}
+            onClick={() => onMarkExpired(resource.id)}
+            className="inline-flex min-h-11 min-w-0 items-center justify-center break-words rounded-full border border-line bg-white px-4 py-2 text-center text-sm font-semibold text-muted transition hover:border-danger/45 hover:bg-dangerSoft hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isStatusUpdating ? "Updating..." : "Mark Expired"}
+          </button>
+        )}
 
         <button
           type="button"

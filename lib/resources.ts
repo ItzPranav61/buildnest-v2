@@ -15,6 +15,8 @@ export const statuses = ["Open", "Upcoming", "Expired"] as const;
 
 export type Status = (typeof statuses)[number];
 
+export const creationStatuses = ["Open", "Upcoming"] as const;
+
 export type Resource = {
   id: string;
   title: string;
@@ -152,7 +154,7 @@ export const demoResources: Resource[] = [
     description: "A remote fellowship for developers to contribute to real projects in teams.",
     difficulty: "Intermediate",
     india_friendly: "Yes",
-    status: "Open",
+    status: "Expired",
     postedBy: defaultPostedBy,
     createdAt: new Date().toISOString()
   },

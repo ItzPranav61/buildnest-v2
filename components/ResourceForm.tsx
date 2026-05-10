@@ -1,5 +1,5 @@
 import { FormEvent } from "react";
-import { categories, statuses, type ResourceFormData } from "@/lib/resources";
+import { categories, creationStatuses, type ResourceFormData } from "@/lib/resources";
 
 type ResourceFormProps = {
   form: ResourceFormData;
@@ -160,7 +160,7 @@ export function ResourceForm({
               onChange={(event) => onChange("status", event.target.value)}
               className={inputClass}
             >
-              {statuses.map((status) => (
+              {creationStatuses.map((status) => (
                 <option key={status}>{status}</option>
               ))}
             </select>

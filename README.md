@@ -11,7 +11,7 @@ The app is intentionally simple: add resources, browse/filter them, copy a Disco
 - Local demo mode fallback when Supabase env vars are missing or fetch fails
 - Search by title, description, or category
 - Filter by category and status
-- Status system: `Open`, `Upcoming`, `Expired`
+- Status system: create `Open`/`Upcoming` resources and mark existing resources as `Expired`
 - Community metadata: posted-by label and lightweight relative time
 - Browser-local saved resources with a Saved Only filter
 - Copy formatted Discord posts
