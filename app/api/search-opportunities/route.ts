@@ -19,8 +19,17 @@ type GoogleSearchResponse = {
   error?: {
     code?: number;
     message?: string;
-    errors?: Array<{ reason?: string; message?: string }>;
+    status?: string;
+    errors?: Array<{ reason?: string; message?: string; domain?: string }>;
+    domain?: string;
   };
+};
+
+type OpportunityRadarErrorResponse = {
+  error: string;
+  details?: string;
+  reason?: string;
+  status?: number;
 };
 
 function cleanSource(link: string, displayLink?: string) {
@@ -127,12 +136,60 @@ export async function GET(request: Request) {
     );
   }
 
-  if (!response.ok || payload.error) {
-    const errorMessage = isQuotaError(payload)
-      ? "Google Search quota exceeded. Try again later."
-      : payload.error?.message || "Google Search failed. Try another query.";
+  if (!response.ok) {
+    const message = payload.error?.message || "Google Search failed. Try another query.";
+    const googleStatus = payload.error?.status;
+    const code = payload.error?.code;
+    const reason = payload.error?.errors?.[0]?.reason;
+    const domain = payload.error?.errors?.[0]?.domain || payload.error?.domain;
 
-    return NextResponse.json({ error: errorMessage }, { status: response.status || 500 });
+    console.error("[Opportunity Radar] Google API error", {
+      status: response.status,
+      message,
+      googleStatus,
+      code,
+      reason,
+      domain
+    });
+
+    return NextResponse.json(
+      {
+        error: "Google API error",
+        details: message,
+        reason,
+        status: response.status
+      },
+      { status: response.status }
+    );
+  }
+
+  if (payload.error) {
+    const message = isQuotaError(payload)
+      ? "Google Search quota exceeded. Try again later."
+      : payload.error.message || "Google Search failed. Try another query.";
+    const googleStatus = payload.error.status;
+    const code = payload.error.code;
+    const reason = payload.error.errors?.[0]?.reason;
+    const domain = payload.error.errors?.[0]?.domain || payload.error.domain;
+
+    console.error("[Opportunity Radar] Google API error", {
+      status: response.status,
+      message,
+      googleStatus,
+      code,
+      reason,
+      domain
+    });
+
+    return NextResponse.json(
+      {
+        error: "Google API error",
+        details: message,
+        reason,
+        status: response.status || code || 500
+      } satisfies OpportunityRadarErrorResponse,
+      { status: response.status || 500 }
+    );
   }
 
   const results: OpportunitySearchResult[] = (payload.items ?? [])

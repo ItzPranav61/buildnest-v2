@@ -10,6 +10,13 @@ type OpportunityRadarProps = {
   onImportSelected: (results: OpportunitySearchResult[]) => Promise<void>;
 };
 
+type OpportunityRadarError = {
+  message: string;
+  details?: string;
+  reason?: string;
+  status?: number;
+};
+
 const presets = [
   "AI internships India",
   "student hackathons India",
@@ -32,6 +39,7 @@ export function OpportunityRadar({
   const [selectedLinks, setSelectedLinks] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [message, setMessage] = useState("");
+  const [radarError, setRadarError] = useState<OpportunityRadarError | null>(null);
 
   const selectedResults = useMemo(() => {
     return results.filter((result) => selectedLinks.includes(result.link));
@@ -46,6 +54,7 @@ export function OpportunityRadar({
 
     setIsSearching(true);
     setMessage("");
+    setRadarError(null);
     setSelectedLinks([]);
 
     try {
@@ -57,11 +66,19 @@ export function OpportunityRadar({
       const payload = (await response.json()) as {
         results?: OpportunitySearchResult[];
         error?: string;
+        details?: string;
+        reason?: string;
+        status?: number;
       };
 
       if (!response.ok || payload.error) {
         setResults([]);
-        setMessage(payload.error || "Google Search failed. Try another query.");
+        setRadarError({
+          message: payload.error || "Google Search failed. Try another query.",
+          details: payload.details,
+          reason: payload.reason,
+          status: payload.status || response.status
+        });
         return;
       }
 
@@ -70,7 +87,9 @@ export function OpportunityRadar({
       setMessage(nextResults.length === 0 ? "No results found. Try a broader query." : "");
     } catch {
       setResults([]);
-      setMessage("Search failed. Check your connection and try again.");
+      setRadarError({
+        message: "Search failed. Check your connection and try again."
+      });
     } finally {
       setIsSearching(false);
     }
@@ -164,6 +183,27 @@ export function OpportunityRadar({
           <p className="mt-4 rounded-lg border border-[#CFC0AA] bg-white px-3 py-2 text-sm font-medium text-muted">
             {message}
           </p>
+        )}
+
+        {radarError && (
+          <div className="mt-4 rounded-lg border border-danger/30 bg-dangerSoft px-3 py-3 text-sm text-danger">
+            <p className="font-semibold">{radarError.message}</p>
+            {radarError.details && (
+              <p className="mt-1 break-words">
+                <span className="font-semibold">Details:</span> {radarError.details}
+              </p>
+            )}
+            {radarError.reason && (
+              <p className="mt-1 break-words">
+                <span className="font-semibold">Reason:</span> {radarError.reason}
+              </p>
+            )}
+            {radarError.status && (
+              <p className="mt-1">
+                <span className="font-semibold">Status:</span> {radarError.status}
+              </p>
+            )}
+          </div>
         )}
 
         {results.length > 0 && (
