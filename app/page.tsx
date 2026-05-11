@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { BulkImportPanel } from "@/components/BulkImportPanel";
+import { OpportunityRadar } from "@/components/OpportunityRadar";
 import { ResourceCard } from "@/components/ResourceCard";
 import { ResourceForm } from "@/components/ResourceForm";
 import { ResourceSkeleton } from "@/components/ResourceSkeleton";
@@ -14,10 +14,11 @@ import {
   getResourceSortScore,
   matchesDateFilter,
   normalizeResource,
-  parseBulkImportResources,
   toResourceFormPayload,
   toSupabaseResourcePayload,
   type DateFilter,
+  type NewResource,
+  type OpportunitySearchResult,
   type Quality,
   type Resource,
   type ResourceRow,
@@ -43,10 +44,7 @@ export default function Home() {
   const [savedResourceIds, setSavedResourceIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [bulkImportValue, setBulkImportValue] = useState("");
-  const [bulkImportSummary, setBulkImportSummary] = useState("");
-  const [bulkImportErrors, setBulkImportErrors] = useState<string[]>([]);
-  const [isImporting, setIsImporting] = useState(false);
+  const [isRadarImporting, setIsRadarImporting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
   const [toast, setToast] = useState("");
@@ -269,47 +267,85 @@ export default function Home() {
     setIsSaving(false);
   }
 
-  async function importResources(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (isImporting) {
+  async function importRadarResults(resultsToImport: OpportunitySearchResult[]) {
+    if (isRadarImporting) {
       return;
     }
 
-    setIsImporting(true);
-    const importResult = parseBulkImportResources(bulkImportValue, resources);
-    setBulkImportErrors(importResult.errors);
+    setIsRadarImporting(true);
 
-    if (importResult.resources.length === 0) {
-      setBulkImportSummary(
-        `Imported 0 resources. Skipped ${importResult.skippedCount} resources.`
-      );
-      setToast("No valid resources to import.");
-      setIsImporting(false);
+    const existingTitles = new Set(
+      resources.map((resource) => resource.title.trim().toLowerCase()).filter(Boolean)
+    );
+    const existingLinks = new Set(
+      resources
+        .map((resource) => resource.link?.trim().toLowerCase())
+        .filter((link): link is string => Boolean(link))
+    );
+    const batchTitles = new Set<string>();
+    const batchLinks = new Set<string>();
+    let skippedDuplicates = 0;
+
+    const newResources: NewResource[] = resultsToImport.reduce<NewResource[]>((nextResources, result) => {
+      const titleKey = result.title.trim().toLowerCase();
+      const linkKey = result.link.trim().toLowerCase();
+
+      if (
+        existingTitles.has(titleKey) ||
+        existingLinks.has(linkKey) ||
+        batchTitles.has(titleKey) ||
+        batchLinks.has(linkKey)
+      ) {
+        skippedDuplicates += 1;
+        return nextResources;
+      }
+
+      batchTitles.add(titleKey);
+      batchLinks.add(linkKey);
+      nextResources.push({
+        title: result.title.trim(),
+        category: result.categoryGuess,
+        type: result.source || null,
+        link: result.link.trim(),
+        description: result.snippet.trim() || null,
+        difficulty: "Beginner",
+        india_friendly: "Yes",
+        status: "Active",
+        postedBy: "BuildNest Radar",
+        createdAt: new Date().toISOString(),
+        startDate: null,
+        endDate: null,
+        deadlineDate: null,
+        quality: "Medium",
+        sourceType: "Curated"
+      });
+
+      return nextResources;
+    }, []);
+
+    if (newResources.length === 0) {
+      setToast(`Imported 0 resources. Skipped ${skippedDuplicates} duplicates.`);
+      setIsRadarImporting(false);
       return;
     }
 
-    const optimisticResources: Resource[] = importResult.resources.map((resource) => ({
-      id: `bulk-${crypto.randomUUID()}`,
+    const optimisticResources: Resource[] = newResources.map((resource) => ({
+      id: `radar-${crypto.randomUUID()}`,
       ...resource
     }));
     const optimisticIds = new Set(optimisticResources.map((resource) => resource.id));
 
     setResources((currentResources) => [...optimisticResources, ...currentResources]);
-    setBulkImportValue("");
-    setBulkImportSummary(
-      `Imported ${importResult.importedCount} resources. Skipped ${importResult.skippedCount} resources.`
-    );
 
     if (!supabase || isDemoMode) {
-      setToast(`Imported ${importResult.importedCount} resources.`);
-      setIsImporting(false);
+      setToast(`Imported ${newResources.length} resources. Skipped ${skippedDuplicates} duplicates.`);
+      setIsRadarImporting(false);
       return;
     }
 
     const { data, error } = await supabase
       .from("resources")
-      .insert(importResult.resources.map(toSupabaseResourcePayload))
+      .insert(newResources.map(toSupabaseResourcePayload))
       .select("*");
 
     if (error) {
@@ -321,49 +357,10 @@ export default function Home() {
         ...savedResources,
         ...currentResources.filter((resource) => !optimisticIds.has(resource.id))
       ]);
-      setToast(`Imported ${savedResources.length} resources.`);
+      setToast(`Imported ${savedResources.length} resources. Skipped ${skippedDuplicates} duplicates.`);
     }
 
-    setIsImporting(false);
-  }
-
-  function clearBulkImport() {
-    setBulkImportValue("");
-    setBulkImportSummary("");
-    setBulkImportErrors([]);
-  }
-
-  function exportResources() {
-    const exportRows = resources.map((resource) => ({
-      title: resource.title,
-      category: resource.category,
-      description: resource.description ?? "",
-      whyValuable: "",
-      difficulty: resource.difficulty ?? "",
-      indiaFriendly: resource.india_friendly ?? "",
-      status: resource.status,
-      startDate: resource.startDate ?? "",
-      endDate: resource.endDate ?? "",
-      deadlineDate: resource.deadlineDate ?? "",
-      quality: resource.quality,
-      sourceType: resource.sourceType,
-      link: resource.link ?? "",
-      discordSummary: resource.description ?? "",
-      postedBy: resource.postedBy,
-      createdAt: resource.createdAt
-    }));
-    const blob = new Blob([JSON.stringify(exportRows, null, 2)], {
-      type: "application/json"
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `buildnest-resources-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
-    setToast("Resources exported.");
+    setIsRadarImporting(false);
   }
 
   async function deleteResource(id: string) {
@@ -509,28 +506,20 @@ export default function Home() {
       </header>
 
       <section className="grid w-full min-w-0 gap-6 lg:grid-cols-[minmax(18rem,0.3fr)_minmax(0,0.7fr)]">
-        <aside className="grid h-fit min-w-0 gap-4 lg:sticky lg:top-6">
-          <ResourceForm
-            form={form}
-            errors={formErrors}
-            isSaving={isSaving}
-            onSubmit={addResource}
-            onChange={updateForm}
-          />
-
-          <BulkImportPanel
-            value={bulkImportValue}
-            isImporting={isImporting}
-            importSummary={bulkImportSummary}
-            importErrors={bulkImportErrors}
-            onChange={setBulkImportValue}
-            onSubmit={importResources}
-            onClear={clearBulkImport}
-            onExport={exportResources}
-          />
-        </aside>
+        <ResourceForm
+          form={form}
+          errors={formErrors}
+          isSaving={isSaving}
+          onSubmit={addResource}
+          onChange={updateForm}
+        />
 
         <section className="min-w-0">
+          <OpportunityRadar
+            isImporting={isRadarImporting}
+            onImportSelected={importRadarResults}
+          />
+
           <ResourceToolbar
             resourceCount={filteredResources.length}
             totalCount={resources.length}

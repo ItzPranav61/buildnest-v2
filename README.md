@@ -14,8 +14,7 @@ The app is intentionally simple: add resources, browse/filter them, copy a Disco
 - Status system: create `Active`/`Upcoming` resources and mark resources as `Expired` or `Active`
 - Optional start, end, and deadline dates with a compact timeline display
 - Quality and source trust labels for lightweight curation
-- Bulk JSON import for AI-generated resource arrays, with duplicate checks
-- Export current resources as JSON
+- Opportunity Radar: server-side Google Custom Search discovery with manual review before import
 - Community metadata: posted-by label and lightweight relative time
 - Browser-local saved resources with a Saved Only filter
 - Copy formatted Discord posts
@@ -37,9 +36,20 @@ Create `.env.local`:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+GOOGLE_SEARCH_API_KEY=your_google_custom_search_api_key
+GOOGLE_SEARCH_ENGINE_ID=your_google_custom_search_engine_id
 ```
 
 Only use the public anon key in this app. Do not expose Supabase service-role or secret keys in browser code.
+
+Google Search keys are server-only. Do not prefix them with `NEXT_PUBLIC_`, do not use them in client components, and do not commit real values to GitHub.
+
+For Vercel, add these variables in Project Settings > Environment Variables for the environments you deploy:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `GOOGLE_SEARCH_API_KEY`
+- `GOOGLE_SEARCH_ENGINE_ID`
 
 ## Supabase Setup
 
@@ -150,32 +160,19 @@ When Supabase env vars are missing or fetching resources fails, the app shows:
 
 Demo mode uses five in-memory fallback resources. Add/delete works locally for the current browser session only.
 
-## Bulk Import Format
+## Opportunity Radar
 
-Paste a JSON array into the Bulk Import panel. The importer requires `title`, `category`, `description`, and `link`. Optional or invalid values safely fall back to app defaults, and duplicate titles or links are skipped.
+Opportunity Radar searches Google Custom Search through the server route at `/api/search-opportunities`. Results are shown in a review list first. Nothing is inserted automatically.
 
-```json
-[
-  {
-    "title": "Google Summer of Code",
-    "category": "Open Source",
-    "description": "A global program where contributors work with open source organizations.",
-    "whyValuable": "Strong open-source portfolio value.",
-    "difficulty": "Advanced",
-    "indiaFriendly": "Yes",
-    "status": "Active",
-    "startDate": "2026-05-12",
-    "endDate": "2026-08-18",
-    "deadlineDate": "2026-05-10",
-    "quality": "High",
-    "sourceType": "Official",
-    "link": "https://summerofcode.withgoogle.com/",
-    "discordSummary": "Apply for a global open-source program."
-  }
-]
-```
+Import behavior:
 
-Supported category aliases from AI output are normalized into the app categories. For example, `Tool / Freebie` becomes `Freebie`, `Learning Platform` becomes `Learning`, and `Startup Resource` becomes `Project`.
+- Select the results you want to keep
+- Click `Import Selected`
+- Duplicate titles or links are skipped
+- Imported Radar resources use `BuildNest Radar` as the posted-by label
+- New Radar resources default to `Active`, `Beginner`, `Yes` for India-friendly, `Medium` quality, and `Curated` source type
+
+If the Google API key, search engine ID, quota, or upstream API fails, the UI shows a clean error and leaves existing resources untouched.
 
 ## Screenshots
 
@@ -189,8 +186,8 @@ Add screenshots here before deployment:
 
 - No authentication or permissions
 - No edit/update flow yet
-- No CSV or file upload import yet
 - Demo mode data is not persisted
+- Opportunity Radar depends on Google Custom Search quota and configuration
 - Saved resources are stored per browser/device with `localStorage`
 - Public insert/delete policies are only appropriate for an early no-auth MVP
 - No Discord bot, AI enrichment, scraping, analytics, or payments
