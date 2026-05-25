@@ -1,33 +1,76 @@
-# BuildNest Growth Engine
+# BuildNest v2
 
-A lightweight resource dashboard for curating useful opportunities for the BuildNest Discord community.
+## Overview
 
-The app is intentionally simple: add resources, browse/filter them, copy a Discord-ready post, and manage data through Supabase when connected. If Supabase is unavailable, the app stays usable with local in-memory demo resources.
+BuildNest v2 is a modern student builder opportunity board for discovering, adding, and browsing internships, hackathons, fellowships, and project openings.
+
+The app uses a Next.js App Router frontend with Supabase as the live data source for opportunity listings. Day 1 scope focuses on a clean browsing experience, a create-only opportunity form, and lightweight client-side filtering.
 
 ## Features
 
-- Resource cards for internships, hackathons, open source, learning, communities, tools, freebies, and projects
-- Add/delete resources with Supabase CRUD
-- Local demo mode fallback when Supabase env vars are missing or fetch fails
-- Search by title, description, or category
-- Filter by category, status, quality, saved resources, and date state
-- Status system: create `Active`/`Upcoming` resources and mark resources as `Expired` or `Active`
-- Optional start, end, and deadline dates with a compact timeline display
-- Quality and source trust labels for lightweight curation
-- Opportunity Radar: server-side Google Custom Search discovery with manual review before import
-- Community metadata: posted-by label and lightweight relative time
-- Browser-local saved resources with a Saved Only filter
-- Copy formatted Discord posts
-- Loading skeletons, empty states, inline form validation, and toast notifications
+- Home page with featured opportunity cards and launch metrics
+- Live opportunities page powered by Supabase
+- Add Opportunity form that inserts new rows into Supabase
+- Client-side search by title or organization
+- Category filters: All, Internship, Hackathon, Fellowship, Project
+- Status filters: All, Open, Upcoming, Expired
+- Loading, empty, and error states for opportunity browsing
+- Responsive Tailwind UI for desktop and mobile screens
+- Dashboard scaffold for opportunity activity and recent listing highlights
 
-## Local Setup
+## Tech Stack
+
+- Next.js 16 App Router
+- React 19
+- TypeScript
+- Tailwind CSS
+- Supabase JavaScript client
+- React Icons
+
+## Architecture
+
+```text
+app/
+  page.tsx                 Home page
+  opportunities/page.tsx   Server-rendered Supabase read route
+  opportunities/loading.tsx
+  add/page.tsx             Add Opportunity route
+  dashboard/page.tsx       Dashboard scaffold
+
+components/
+  Navbar.tsx
+  OpportunityCard.tsx
+  OpportunityForm.tsx      Client-side Supabase insert form
+  OpportunitiesList.tsx    Client-side search/filter wrapper
+  Filters.tsx
+
+lib/
+  supabase.ts              Supabase browser/server client
+
+types/
+  opportunity.ts           Opportunity table types
+```
+
+The opportunities page fetches live rows from the `opportunities` table on the server, then passes them into a client component for search and filter behavior. The add form inserts only the current database columns and redirects to `/opportunities` after a successful create.
+
+## Setup
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open:
+
+```text
+http://localhost:3000
+```
+
+Build check:
+
+```bash
+npm run build
+```
 
 ## Environment Variables
 
@@ -36,166 +79,85 @@ Create `.env.local`:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-GOOGLE_SEARCH_API_KEY=your_google_custom_search_api_key
-GOOGLE_SEARCH_ENGINE_ID=your_google_custom_search_engine_id
 ```
 
-Only use the public anon key in this app. Do not expose Supabase service-role or secret keys in browser code.
+Only use the public Supabase anon key in this project. Do not commit real `.env.local` values.
 
-Google Search keys are server-only. Do not prefix them with `NEXT_PUBLIC_`, do not use them in client components, and do not commit real values to GitHub.
-
-For Vercel, add these variables in Project Settings > Environment Variables for the environments you deploy:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `GOOGLE_SEARCH_API_KEY`
-- `GOOGLE_SEARCH_ENGINE_ID`
-
-## Supabase Setup
-
-Create the table:
+Supabase table expected by the app:
 
 ```sql
-create table resources (
-  id uuid primary key default gen_random_uuid(),
+create table opportunities (
   title text not null,
+  organization text not null,
   category text not null,
-  type text,
-  link text,
-  description text,
-  difficulty text,
-  india_friendly text,
-  status text default 'Active',
-  quality text default 'Medium',
-  source_type text default 'Curated',
-  posted_by text default 'BuildNest Member',
-  start_date date,
-  end_date date,
-  deadline_date date,
-  created_at timestamp with time zone default now()
+  status text not null,
+  description text not null,
+  location text not null,
+  tags text[] not null,
+  deadline date not null
 );
 ```
 
-If your table already exists, run this migration:
+For the current no-auth MVP, reads and inserts require Supabase RLS policies similar to:
 
 ```sql
-alter table resources
-add column if not exists posted_by text default 'BuildNest Member';
+alter table opportunities enable row level security;
 
-alter table resources
-add column if not exists created_at timestamp with time zone default now();
-
-alter table resources
-add column if not exists start_date date;
-
-alter table resources
-add column if not exists end_date date;
-
-alter table resources
-add column if not exists deadline_date date;
-
-alter table resources
-add column if not exists quality text default 'Medium';
-
-alter table resources
-add column if not exists source_type text default 'Curated';
-
-update resources
-set posted_by = 'BuildNest Member'
-where posted_by is null or posted_by = '';
-
-update resources
-set quality = 'Medium'
-where quality is null or quality = '';
-
-update resources
-set source_type = 'Curated'
-where source_type is null or source_type = '';
-
-update resources
-set created_at = now()
-where created_at is null;
-```
-
-For this no-auth MVP, enable simple development policies:
-
-```sql
-alter table resources enable row level security;
-
-create policy "Anyone can read resources"
-on resources for select
+create policy "Anyone can read opportunities"
+on opportunities for select
 using (true);
 
-create policy "Anyone can insert resources"
-on resources for insert
+create policy "Anyone can insert opportunities"
+on opportunities for insert
 with check (true);
-
-create policy "Anyone can update resources"
-on resources for update
-using (true)
-with check (true);
-
-create policy "Anyone can delete resources"
-on resources for delete
-using (true);
 ```
 
-Optional seed data:
+## Deployment
 
-```sql
-insert into resources (title, category, type, link, description, difficulty, india_friendly, status, posted_by, start_date, end_date, deadline_date, quality, source_type)
-values
-  ('GitHub Student Developer Pack', 'Freebie', 'Student benefits', 'https://education.github.com/pack', 'Free developer tools, credits, and learning resources for verified students.', 'Beginner', 'Yes', 'Active', 'BuildNest Member', null, null, null, 'High', 'Official'),
-  ('Google Developer Student Clubs', 'Community', 'Campus community', 'https://gdsc.community.dev/', 'Student-led developer communities with events, projects, and peer learning.', 'Beginner', 'Yes', 'Active', 'BuildNest Member', current_date + 12, current_date + 13, null, 'Medium', 'Official'),
-  ('Google Summer of Code', 'Open Source', 'Open source program', 'https://summerofcode.withgoogle.com/', 'A global program where contributors work with open source organizations.', 'Advanced', 'Yes', 'Upcoming', 'BuildNest Member', current_date + 30, current_date + 120, current_date + 21, 'High', 'Official'),
-  ('MLH Fellowship', 'Internship', 'Remote fellowship', 'https://fellowship.mlh.io/', 'A remote fellowship for developers to contribute to real projects in teams.', 'Intermediate', 'Yes', 'Expired', 'BuildNest Member', current_date - 30, current_date - 2, current_date - 7, 'Medium', 'Curated'),
-  ('Kaggle Competitions', 'Hackathon', 'Data science challenge', 'https://www.kaggle.com/competitions', 'Competitions for practicing machine learning, analytics, and problem solving.', 'Intermediate', 'Yes', 'Active', 'BuildNest Member', current_date + 2, current_date + 6, current_date + 6, 'Medium', 'Community');
+Recommended deployment target: Vercel.
+
+1. Connect the GitHub repo to Vercel.
+2. Add the environment variables in Vercel Project Settings.
+3. Deploy from the `main` branch.
+4. Confirm `/`, `/opportunities`, `/add`, and `/dashboard` load successfully.
+
+Repository:
+
+```text
+https://github.com/ItzPranav61/buildnest-v2
 ```
 
-## Demo Mode
+Launch tag:
 
-When Supabase env vars are missing or fetching resources fails, the app shows:
-
-`Database not connected yet. Using local demo mode.`
-
-Demo mode uses five in-memory fallback resources. Add/delete works locally for the current browser session only.
-
-## Opportunity Radar
-
-Opportunity Radar searches Google Custom Search through the server route at `/api/search-opportunities`. Results are shown in a review list first. Nothing is inserted automatically.
-
-Import behavior:
-
-- Select the results you want to keep
-- Click `Import Selected`
-- Duplicate titles or links are skipped
-- Imported Radar resources use `BuildNest Radar` as the posted-by label
-- New Radar resources default to `Active`, `Beginner`, `Yes` for India-friendly, `Medium` quality, and `Curated` source type
-
-If the Google API key, search engine ID, quota, or upstream API fails, the UI shows a clean error and leaves existing resources untouched.
-
-## Screenshots
-
-Add screenshots here before deployment:
-
-- Dashboard resource view
-- Add resource form
-- Search/filter state
-
-## Known Limitations
-
-- No authentication or permissions
-- No edit/update flow yet
-- Demo mode data is not persisted
-- Opportunity Radar depends on Google Custom Search quota and configuration
-- Saved resources are stored per browser/device with `localStorage`
-- Public insert/delete policies are only appropriate for an early no-auth MVP
-- No Discord bot, AI enrichment, scraping, analytics, or payments
+```text
+day1-launch
+```
 
 ## Future Roadmap
 
-- Add auth and role-based moderation
-- Add edit resource flow
-- Add saved Discord post templates
-- Add Discord bot publishing
-- Add AI-assisted summarization after core workflows are stable
+- Add authentication and role-based moderation
+- Add edit and delete flows
+- Add application tracking for students
+- Add admin review queue before publishing opportunities
+- Add richer dashboard analytics from Supabase
+- Add saved/bookmarked opportunities
+- Add deadline sorting and closing-soon views
+- Add image or logo support for organizations
+
+## Screenshots
+
+### Home
+
+![BuildNest home page](docs/screenshots/home.png)
+
+### Opportunities
+
+![BuildNest opportunities page](docs/screenshots/opportunities.png)
+
+### Add Opportunity
+
+![BuildNest add opportunity page](docs/screenshots/add-opportunity.png)
+
+### Dashboard
+
+![BuildNest dashboard page](docs/screenshots/dashboard.png)
