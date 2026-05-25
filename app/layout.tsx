@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Aaspas | Badlapur Community App",
-  description: "A mobile-first hyperlocal community MVP for Badlapur, Maharashtra."
+  title: "BuildNest | Student Builder Opportunities",
+  description: "A modern student builder opportunity board."
 };
 
 export default function RootLayout({

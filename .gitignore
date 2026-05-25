@@ -1,6 +1,7 @@
 node_modules
 .next
 out
+.env.local
 .env*.local
 .env
 npm-debug.log*
@@ -9,3 +10,5 @@ yarn-error.log*
 pnpm-debug.log*
 dev-server.log
 dev-server.err.log
+buildnest-dev.log
+buildnest-dev.err.log
