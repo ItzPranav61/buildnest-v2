@@ -1,4 +1,5 @@
 export type Opportunity = {
+  id?: string;
   title: string;
   organization: string;
   category: string;
@@ -9,4 +10,4 @@ export type Opportunity = {
   deadline: string;
 };
 
-export type OpportunityInsert = Opportunity;
+export type OpportunityInsert = Omit<Opportunity, "id">;
