@@ -48,34 +48,34 @@ export function OpportunityForm() {
       return;
     }
 
-    router.push("/opportunities");
+    router.push("/opportunities?created=1");
     router.refresh();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <form onSubmit={handleSubmit} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-xl shadow-black/10 backdrop-blur">
       <div className="grid gap-4 sm:grid-cols-2">
         {textFields.map((field) => (
-          <label key={field.label} className="grid gap-2 text-sm font-bold text-slate-700">
+          <label key={field.label} className="grid gap-2 text-sm font-bold text-slate-300">
             {field.label}
             <input
               name={field.name}
               type={field.type}
               required
-              className="min-h-12 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+              className="min-h-12 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
               placeholder={field.placeholder}
             />
           </label>
         ))}
       </div>
 
-      <label className="mt-4 grid gap-2 text-sm font-bold text-slate-700">
+      <label className="mt-4 grid gap-2 text-sm font-bold text-slate-300">
         Status
         <select
           name="status"
           required
           defaultValue="Open"
-          className="min-h-12 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-950 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+          className="min-h-12 rounded-lg border border-white/10 bg-[#0b1220] px-3 text-sm font-medium text-white outline-none transition duration-200 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
         >
           {statuses.map((status) => (
             <option key={status} value={status}>
@@ -85,22 +85,22 @@ export function OpportunityForm() {
         </select>
       </label>
 
-      <label className="mt-4 grid gap-2 text-sm font-bold text-slate-700">
+      <label className="mt-4 grid gap-2 text-sm font-bold text-slate-300">
         Description
         <textarea
           name="description"
           required
-          className="min-h-32 rounded-lg border border-slate-300 bg-white p-3 text-sm font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+          className="min-h-32 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
           placeholder="Describe who this is for, what students will build, and what they receive."
         />
       </label>
 
-      <label className="mt-4 grid gap-2 text-sm font-bold text-slate-700">
+      <label className="mt-4 grid gap-2 text-sm font-bold text-slate-300">
         Tags
         <input
           name="tags"
           required
-          className="min-h-12 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+          className="min-h-12 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
           placeholder="React, Figma, AI, GitHub"
         />
       </label>
@@ -114,9 +114,9 @@ export function OpportunityForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
+        className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-gradient-to-r from-cyan-300 to-blue-400 px-5 py-3 text-sm font-black text-slate-950 transition duration-200 hover:from-cyan-200 hover:to-blue-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
       >
-        {isSubmitting ? "Adding..." : "Add opportunity"}
+        {isSubmitting ? "Saving..." : "Add opportunity"}
       </button>
     </form>
   );

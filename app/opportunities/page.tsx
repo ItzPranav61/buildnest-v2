@@ -27,21 +27,21 @@ export default async function OpportunitiesPage() {
   const { opportunities, error } = await getOpportunities();
 
   return (
-    <main className="min-h-screen bg-[#f7f8fb] text-slate-950">
+    <main className="min-h-screen bg-[#040814] text-white">
       <Navbar />
       <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-cyan-700">Opportunities</p>
-            <h1 className="mt-2 text-4xl font-black tracking-normal sm:text-5xl">Browse student-ready work</h1>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-cyan-300">Opportunities</p>
+            <h1 className="mt-2 text-4xl font-black tracking-normal text-white sm:text-5xl">Browse student-ready work</h1>
           </div>
-          <p className="max-w-xl text-base leading-7 text-slate-600">
-            Live listings from Supabase. Filters are scaffolded for layout and future wiring.
+          <p className="max-w-xl text-base leading-7 text-slate-400">
+            Live opportunities from the BuildNest radar, sorted for builder momentum.
           </p>
         </div>
 
         {error ? (
-          <div className="mt-8 rounded-lg border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">
+          <div className="mt-8 rounded-2xl border border-red-400/30 bg-red-500/10 p-5 text-sm font-semibold text-red-200">
             Unable to load opportunities: {error}
           </div>
         ) : (
