@@ -37,41 +37,46 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fb] text-slate-950">
+    <main className="min-h-screen bg-[#040814] text-white">
       <Navbar />
-      <section className="mx-auto grid max-w-7xl gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[0.85fr_1.15fr]">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-cyan-700">Login</p>
-          <h1 className="mt-2 text-4xl font-black tracking-normal sm:text-5xl">Sign in to BuildNest.</h1>
-          <p className="mt-4 text-base leading-7 text-slate-600">
-            Use your email to access the protected dashboard.
+      <section className="mx-auto grid min-h-[calc(100vh-73px)] max-w-7xl items-center gap-8 px-5 py-12 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:py-16">
+        <div className="max-w-2xl">
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-cyan-300">Login</p>
+          <h1 className="mt-3 text-4xl font-black leading-tight tracking-normal text-white sm:text-5xl">
+            Sign in to BuildNest.
+          </h1>
+          <p className="mt-4 max-w-xl text-base leading-7 text-slate-400">
+            Access your protected builder dashboard.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <label className="grid gap-2 text-sm font-bold text-slate-700">
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-lg border border-white/10 bg-white/[0.05] p-5 shadow-2xl shadow-black/30 backdrop-blur sm:p-6"
+        >
+          <label className="grid gap-2 text-sm font-bold text-slate-300">
             Email
             <div className="relative">
-              <FiMail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
+              <FiMail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-cyan-200/80" aria-hidden />
               <input
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
-                className="min-h-12 w-full rounded-lg border border-slate-300 bg-white py-3 pl-10 pr-3 text-sm font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                className="min-h-12 w-full rounded-lg border border-white/10 bg-[#07111f] py-3 pl-10 pr-3 text-sm font-medium text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
                 placeholder="you@example.com"
               />
             </div>
           </label>
 
           {error ? (
-            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
+            <div className="mt-4 rounded-lg border border-red-400/30 bg-red-500/10 p-3 text-sm font-semibold text-red-200 backdrop-blur">
               Unable to sign in: {error}
             </div>
           ) : null}
 
           {message ? (
-            <div className="mt-4 rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm font-semibold text-cyan-800">
+            <div className="mt-4 rounded-lg border border-cyan-300/30 bg-cyan-300/10 p-3 text-sm font-semibold text-cyan-100 backdrop-blur">
               {message}
             </div>
           ) : null}
@@ -79,7 +84,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
+            className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-gradient-to-r from-cyan-300 to-blue-400 px-5 py-3 text-sm font-black text-slate-950 shadow-xl shadow-cyan-950/20 transition hover:from-cyan-200 hover:to-blue-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             {isSubmitting ? "Sending link..." : "Send login link"}
           </button>
