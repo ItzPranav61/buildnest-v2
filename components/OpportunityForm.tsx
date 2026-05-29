@@ -53,7 +53,7 @@ export function OpportunityForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-xl shadow-black/10 backdrop-blur">
+    <form onSubmit={handleSubmit} className="w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-xl shadow-black/10 backdrop-blur sm:p-5">
       <div className="grid gap-4 sm:grid-cols-2">
         {textFields.map((field) => (
           <label key={field.label} className="grid gap-2 text-sm font-bold text-slate-300">
@@ -62,7 +62,7 @@ export function OpportunityForm() {
               name={field.name}
               type={field.type}
               required={field.name !== "deadline"}
-              className="min-h-12 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+              className="min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
               placeholder={field.placeholder}
             />
           </label>
@@ -75,7 +75,7 @@ export function OpportunityForm() {
           name="status"
           required
           defaultValue="Open"
-          className="min-h-12 rounded-lg border border-white/10 bg-[#0b1220] px-3 text-sm font-medium text-white outline-none transition duration-200 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+          className="min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-[#0b1220] px-3 text-sm font-medium text-white outline-none transition duration-200 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
         >
           {statuses.map((status) => (
             <option key={status} value={status}>
@@ -90,7 +90,7 @@ export function OpportunityForm() {
         <textarea
           name="description"
           required
-          className="min-h-32 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+          className="min-h-32 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
           placeholder="Describe who this is for, what students will build, and what they receive."
         />
       </label>
@@ -100,7 +100,7 @@ export function OpportunityForm() {
         <input
           name="tags"
           required
-          className="min-h-12 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+          className="min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
           placeholder="React, Figma, AI, GitHub"
         />
       </label>

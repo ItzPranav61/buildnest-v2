@@ -241,11 +241,11 @@ export function DashboardOpportunityManager() {
   return (
     <>
       <Toast toast={toast} onClose={() => setToast(null)} />
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid w-full max-w-full min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-xl shadow-black/10 backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40">
+          <div key={item.label} className="w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-xl shadow-black/10 backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 sm:p-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-slate-400">{item.label}</span>
+              <span className="min-w-0 break-words text-sm font-semibold text-slate-400">{item.label}</span>
               <span className="grid size-10 place-items-center rounded-lg bg-cyan-300/15 text-cyan-200">
                 <item.icon aria-hidden />
               </span>
@@ -255,11 +255,11 @@ export function DashboardOpportunityManager() {
         ))}
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid w-full max-w-full min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {quickStats.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-xl shadow-black/10 backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40">
+          <div key={item.label} className="w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-xl shadow-black/10 backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 sm:p-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-slate-400">{item.label}</span>
+              <span className="min-w-0 break-words text-sm font-semibold text-slate-400">{item.label}</span>
               <span className="grid size-10 place-items-center rounded-lg bg-cyan-300/15 text-cyan-200">
                 <item.icon aria-hidden />
               </span>
@@ -269,8 +269,8 @@ export function DashboardOpportunityManager() {
         ))}
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-xl shadow-black/10 backdrop-blur">
+      <div className="mt-8 grid w-full max-w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
+        <section className="w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-xl shadow-black/10 backdrop-blur sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-black text-white">Manage opportunities</h2>
@@ -294,30 +294,30 @@ export function DashboardOpportunityManager() {
           ) : null}
 
           {isLoading ? (
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="mt-5 grid w-full max-w-full min-w-0 gap-4 md:grid-cols-2">
               {[1, 2, 3, 4].map((item) => (
                 <div key={item} className="h-52 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]" />
               ))}
             </div>
           ) : opportunities.length === 0 ? (
-            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center sm:p-10">
+            <div className="mt-5 w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center sm:p-10">
               <h3 className="text-lg font-black text-white">No opportunities to manage</h3>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">
                 Published opportunities will appear here for authenticated admins to edit or remove.
               </p>
             </div>
           ) : (
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="mt-5 grid w-full max-w-full min-w-0 gap-4 md:grid-cols-2">
               {opportunities.map((opportunity, index) => (
                 <article
                   key={`${opportunity.title}-${opportunity.organization}-${opportunity.deadline}-${index}`}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40"
+                  className="w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 sm:p-5"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-sm font-bold uppercase tracking-[0.14em] text-cyan-300">{opportunity.category}</p>
-                      <h3 className="mt-2 text-lg font-black leading-6 text-white">{opportunity.title}</h3>
-                      <p className="mt-1 text-sm font-semibold text-slate-400">{opportunity.organization}</p>
+                      <h3 className="mt-2 break-words text-lg font-black leading-6 text-white">{opportunity.title}</h3>
+                      <p className="mt-1 break-words text-sm font-semibold text-slate-400">{opportunity.organization}</p>
                     </div>
                     <span className={`shrink-0 rounded-md px-3 py-1 text-xs font-black ${getStatusBadgeClass(opportunity.status)}`}>
                       {opportunity.status}
@@ -328,17 +328,17 @@ export function DashboardOpportunityManager() {
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     {opportunity.tags.map((tag) => (
-                      <span key={tag} className="rounded-md border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-bold text-slate-300">
+                      <span key={tag} className="max-w-full break-words rounded-md border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-bold text-slate-300">
                         {tag}
                       </span>
                     ))}
                   </div>
 
-                  <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm font-semibold text-slate-400">
+                  <div className="mt-5 flex min-w-0 flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="min-w-0 break-words text-sm font-semibold text-slate-400">
                       {opportunity.location} - {formatDeadline(opportunity.deadline)}
                     </p>
-                    <div className="grid grid-cols-2 gap-2 sm:flex">
+                    <div className="grid min-w-0 grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex">
                       <button
                         type="button"
                         onClick={() => openEditModal(opportunity)}

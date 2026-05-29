@@ -155,24 +155,24 @@ export default async function HomePage() {
       <Navbar />
 
       <section
-        className="relative min-h-[78svh] overflow-hidden bg-cover bg-center"
+        className="relative min-h-[78svh] max-w-full overflow-hidden bg-cover bg-center"
         style={{ backgroundImage: `url(${heroImage})` }}
       >
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,7,13,0.96)_0%,rgba(5,7,13,0.86)_46%,rgba(5,7,13,0.46)_100%)]" />
         <div className="absolute inset-x-0 bottom-0 h-[260px] bg-gradient-to-b from-transparent via-[#040814]/40 to-[#040814]" />
 
-        <div className="relative mx-auto flex min-h-[78svh] max-w-7xl items-center px-5 py-14 sm:px-8">
-          <div className="w-full max-w-4xl">
+        <div className="relative mx-auto flex min-h-[78svh] w-full max-w-7xl items-center px-4 py-14 sm:px-8">
+          <div className="w-full max-w-4xl min-w-0">
             <span className="inline-flex rounded-full border border-cyan-300/30 bg-cyan-300/10 px-4 py-2 text-sm font-bold text-cyan-100 backdrop-blur">
               Built for students who ship
             </span>
-            <h1 className="mt-6 text-5xl font-black leading-[1.01] tracking-normal text-white sm:text-6xl lg:text-7xl">
+            <h1 className="mt-6 break-words text-4xl font-black leading-[1.04] tracking-normal text-white min-[375px]:text-5xl sm:text-6xl lg:text-7xl">
               Signal for students who ship.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">
               BuildNest is a student builder radar for finding opportunities, building proof, and choosing ship over scroll.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8 flex min-w-0 flex-col gap-3 sm:flex-row">
               <Link
                 href="/opportunities"
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-xl shadow-black/20 transition hover:bg-cyan-100"
@@ -199,14 +199,14 @@ export default async function HomePage() {
       </section>
 
       <section id="radar" className="border-b border-white/10 bg-[#080b12]">
-        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-16 sm:px-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+        <div className="mx-auto grid w-full max-w-7xl min-w-0 gap-8 px-4 py-16 sm:px-8 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-center">
           <SectionHeading
             eyebrow="Opportunity Radar Preview"
             title="Signal over scroll."
             description="Radar is the product lens for the board: clean status, category, tags, and deadline context so student builders can decide faster."
           />
 
-          <div className="rounded-lg border border-white/10 bg-white/[0.05] p-4 shadow-2xl shadow-black/30 backdrop-blur">
+          <div className="w-full max-w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.05] p-3 shadow-2xl shadow-black/30 backdrop-blur sm:p-4">
             <div className="rounded-lg border border-white/10 bg-[#07111f]/90 p-4">
               <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
                 <div>
@@ -227,11 +227,11 @@ export default async function HomePage() {
               <div className="mt-4 grid gap-3">
                 {featuredOpportunities.length > 0 ? (
                   featuredOpportunities.map((opportunity) => (
-                    <div key={`${opportunity.title}-${opportunity.organization}-${opportunity.deadline}`} className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+                    <div key={`${opportunity.title}-${opportunity.organization}-${opportunity.deadline}`} className="w-full max-w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] p-4">
                       <div className="flex items-center justify-between gap-3">
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-xs font-black uppercase text-slate-500">{opportunity.category}</p>
-                          <p className="mt-1 font-black text-white">{opportunity.title}</p>
+                          <p className="mt-1 break-words font-black text-white">{opportunity.title}</p>
                           <p className="mt-1 text-xs font-semibold text-slate-500">
                             {formatDeadline(opportunity.deadline)}
                           </p>
@@ -251,7 +251,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8">
+      <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-8">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="rounded-lg border border-white/10 bg-white/[0.05] p-5 backdrop-blur">
@@ -267,7 +267,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section id="featured" className="mx-auto max-w-7xl px-5 pb-16 sm:px-8">
+      <section id="featured" className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <SectionHeading eyebrow="Featured Opportunities" title="A board that rewards momentum." />
           <Link href="/opportunities" className="inline-flex items-center gap-2 text-sm font-black text-cyan-200 hover:text-cyan-100">
@@ -288,7 +288,7 @@ export default async function HomePage() {
       </section>
 
       <section id="journey" className="border-y border-white/10 bg-[#080b12]">
-        <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8">
+        <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-8">
           <SectionHeading eyebrow="Student Builder Journey" title="From finding signal to shipping proof." />
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {journey.map((step, index) => (
@@ -307,7 +307,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section id="community" className="mx-auto grid max-w-7xl gap-8 px-5 py-16 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+      <section id="community" className="mx-auto grid w-full max-w-7xl min-w-0 gap-8 px-4 py-16 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
         <SectionHeading
           eyebrow="Community"
           title="A builder circle, not a job board clone."
@@ -336,7 +336,7 @@ export default async function HomePage() {
       </section>
 
       <footer className="border-t border-white/10 bg-[#05070d]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-8 sm:px-8 md:flex-row md:items-center md:justify-between">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-8 sm:px-8 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-lg font-black">BuildNest</p>
             <p className="mt-1 text-sm font-semibold text-slate-500">Focused opportunity discovery for student builders.</p>

@@ -39,10 +39,10 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-[#040814] text-white">
       <Navbar />
-      <section className="mx-auto grid min-h-[calc(100vh-73px)] max-w-7xl items-center gap-8 px-5 py-12 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:py-16">
-        <div className="max-w-2xl">
+      <section className="mx-auto grid min-h-[calc(100vh-73px)] w-full max-w-7xl min-w-0 items-center gap-8 px-4 py-12 sm:px-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:py-16">
+        <div className="max-w-2xl min-w-0">
           <p className="text-sm font-black uppercase tracking-[0.18em] text-cyan-300">Login</p>
-          <h1 className="mt-3 text-4xl font-black leading-tight tracking-normal text-white sm:text-5xl">
+          <h1 className="mt-3 break-words text-4xl font-black leading-tight tracking-normal text-white sm:text-5xl">
             Sign in to BuildNest.
           </h1>
           <p className="mt-4 max-w-xl text-base leading-7 text-slate-400">
