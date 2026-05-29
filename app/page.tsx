@@ -7,6 +7,7 @@ import {
   FiCalendar,
   FiCheckCircle,
   FiCode,
+  FiExternalLink,
   FiFlag,
   FiGlobe,
   FiLayers,
@@ -86,6 +87,16 @@ function GlassOpportunity({ opportunity }: { opportunity: Opportunity }) {
           </span>
         ))}
       </div>
+      {opportunity.external_link ? (
+        <a
+          href={opportunity.external_link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-300 to-blue-400 px-4 py-2 text-sm font-black text-slate-950 transition duration-200 hover:from-cyan-200 hover:to-blue-300"
+        >
+          Open Opportunity <FiExternalLink aria-hidden />
+        </a>
+      ) : null}
     </article>
   );
 }
@@ -117,7 +128,7 @@ function NestBotImage({ className = "" }: { className?: string }) {
 async function getOpportunities() {
   const { data, error } = await supabase
     .from("opportunities")
-    .select("title, organization, category, status, description, location, tags, deadline");
+    .select("title, organization, category, status, description, location, tags, deadline, external_link");
 
   if (error) {
     return { opportunities: [], error: error.message };
@@ -240,6 +251,16 @@ export default async function HomePage() {
                           {opportunity.status}
                         </span>
                       </div>
+                      {opportunity.external_link ? (
+                        <a
+                          href={opportunity.external_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-cyan-300/25 bg-cyan-300/10 px-3 py-2 text-xs font-black text-cyan-100 transition hover:bg-cyan-300/15"
+                        >
+                          Open Opportunity <FiExternalLink aria-hidden />
+                        </a>
+                      ) : null}
                     </div>
                   ))
                 ) : (

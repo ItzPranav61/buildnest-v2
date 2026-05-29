@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { isValidExternalLink, normalizeExternalLink } from "@/lib/opportunity-utils";
 import { supabase } from "@/lib/supabase";
 import type { OpportunityInsert } from "@/types/opportunity";
 
@@ -26,6 +27,14 @@ export function OpportunityForm() {
     setError(null);
 
     const formData = new FormData(event.currentTarget);
+    const externalLink = normalizeExternalLink(String(formData.get("external_link") ?? ""));
+
+    if (!isValidExternalLink(externalLink)) {
+      setError("External link must start with http:// or https://.");
+      setIsSubmitting(false);
+      return;
+    }
+
     const opportunity: OpportunityInsert = {
       title: String(formData.get("title") ?? "").trim(),
       organization: String(formData.get("organization") ?? "").trim(),
@@ -38,6 +47,7 @@ export function OpportunityForm() {
         .map((tag) => tag.trim())
         .filter(Boolean),
       deadline: String(formData.get("deadline") ?? "").trim() || null,
+      external_link: externalLink
     };
 
     const { error: insertError } = await supabase.from("opportunities").insert(opportunity);
@@ -102,6 +112,16 @@ export function OpportunityForm() {
           required
           className="min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
           placeholder="React, Figma, AI, GitHub"
+        />
+      </label>
+
+      <label className="mt-4 grid gap-2 text-sm font-bold text-slate-300">
+        External link
+        <input
+          name="external_link"
+          type="url"
+          className="min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+          placeholder="https://example.com/apply"
         />
       </label>
 

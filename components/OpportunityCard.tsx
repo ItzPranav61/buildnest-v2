@@ -1,4 +1,4 @@
-import { FiCalendar, FiMapPin } from "react-icons/fi";
+import { FiCalendar, FiExternalLink, FiMapPin } from "react-icons/fi";
 import { formatDeadline, getStatusBadgeClass } from "@/lib/opportunity-utils";
 import type { Opportunity } from "@/types/opportunity";
 
@@ -42,6 +42,17 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
           <FiCalendar aria-hidden /> Apply by {formatDeadline(opportunity.deadline)}
         </span>
       </div>
+
+      {opportunity.external_link ? (
+        <a
+          href={opportunity.external_link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-300 to-blue-400 px-4 py-2 text-sm font-black text-slate-950 transition duration-200 hover:from-cyan-200 hover:to-blue-300"
+        >
+          Open Opportunity <FiExternalLink aria-hidden />
+        </a>
+      ) : null}
     </article>
   );
 }

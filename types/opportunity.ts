@@ -8,6 +8,7 @@ export type Opportunity = {
   location: string;
   tags: string[];
   deadline: string | null;
+  external_link: string | null;
 };
 
 export type OpportunityInsert = Omit<Opportunity, "id">;

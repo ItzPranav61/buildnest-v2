@@ -17,7 +17,14 @@ import {
 import { OpportunityCard } from "@/components/OpportunityCard";
 import { Toast, type ToastState } from "@/components/Toast";
 import { createBrowserAuthClient } from "@/lib/auth";
-import { formatDeadline, getStatusBadgeClass, isOssCategory, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
+import {
+  formatDeadline,
+  getStatusBadgeClass,
+  isOssCategory,
+  isValidExternalLink,
+  normalizeExternalLink,
+  sortOpportunitiesByDeadline
+} from "@/lib/opportunity-utils";
 import { supabase } from "@/lib/supabase";
 import type { Opportunity, OpportunityInsert } from "@/types/opportunity";
 
@@ -32,7 +39,8 @@ const emptyOpportunity: Opportunity = {
   description: "",
   location: "",
   tags: [],
-  deadline: null
+  deadline: null,
+  external_link: null
 };
 
 function parseTagsInput(value: string) {
@@ -101,7 +109,7 @@ export function DashboardOpportunityManager() {
 
     const { data, error: fetchError } = await supabase
       .from("opportunities")
-      .select("id, title, organization, category, status, description, location, tags, deadline");
+      .select("id, title, organization, category, status, description, location, tags, deadline, external_link");
 
     if (fetchError) {
       setError(fetchError.message);
@@ -155,6 +163,14 @@ export function DashboardOpportunityManager() {
 
     setIsSaving(true);
     setError(null);
+    const externalLink = normalizeExternalLink(formState.external_link ?? "");
+
+    if (!isValidExternalLink(externalLink)) {
+      setError("External link must start with http:// or https://.");
+      setToast({ type: "error", message: "Update failed" });
+      setIsSaving(false);
+      return;
+    }
 
     const payload: OpportunityInsert = {
       title: formState.title.trim(),
@@ -164,7 +180,8 @@ export function DashboardOpportunityManager() {
       description: formState.description.trim(),
       location: formState.location.trim(),
       tags: parseTagsInput(tagsInput),
-      deadline: formState.deadline?.trim() || null
+      deadline: formState.deadline?.trim() || null,
+      external_link: externalLink
     };
 
     const supabase = createBrowserAuthClient();
@@ -172,7 +189,7 @@ export function DashboardOpportunityManager() {
       .from("opportunities")
       .update(payload)
       .eq("id", editingOpportunity.id)
-      .select("id, title, organization, category, status, description, location, tags, deadline");
+      .select("id, title, organization, category, status, description, location, tags, deadline, external_link");
 
     if (updateError) {
       setError(updateError.message);
@@ -458,6 +475,17 @@ export function DashboardOpportunityManager() {
                   value={formState.description}
                   onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value }))}
                   className="min-h-32 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+                />
+              </label>
+
+              <label className="mt-4 grid gap-2 text-sm font-bold text-slate-300">
+                External link
+                <input
+                  type="url"
+                  value={formState.external_link ?? ""}
+                  onChange={(event) => setFormState((current) => ({ ...current, external_link: event.target.value || null }))}
+                  className="min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+                  placeholder="https://example.com/apply"
                 />
               </label>
 

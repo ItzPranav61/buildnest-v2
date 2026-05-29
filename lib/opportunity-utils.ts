@@ -70,6 +70,15 @@ export function formatDeadline(deadline: Opportunity["deadline"]) {
   }).format(new Date(time));
 }
 
+export function normalizeExternalLink(value: string) {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+export function isValidExternalLink(value: string | null) {
+  return !value || value.startsWith("http://") || value.startsWith("https://");
+}
+
 export function getStatusBadgeClass(status: string) {
   if (status === "Open") {
     return "bg-emerald-400/15 text-emerald-200 shadow-[0_0_20px_rgba(52,211,153,0.18)]";
