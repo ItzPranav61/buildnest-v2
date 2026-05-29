@@ -15,23 +15,58 @@ const textFields = [
 ] as const;
 
 const statuses = ["Open", "Upcoming", "Expired"] as const;
+const requiredFields = ["title", "organization", "category", "status"] as const;
+
+type FieldErrors = Partial<Record<(typeof requiredFields)[number] | "external_link", string>>;
 
 export function OpportunityForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+  function clearFieldError(name: keyof FieldErrors) {
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
+  }
+
+  function focusField(form: HTMLFormElement, name: string) {
+    const field = form.elements.namedItem(name);
+    if (field instanceof HTMLElement) {
+      field.focus();
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
     setError(null);
+    setFieldErrors({});
 
     const formData = new FormData(event.currentTarget);
     const externalLink = normalizeExternalLink(String(formData.get("external_link") ?? ""));
+    const nextFieldErrors: FieldErrors = {};
+
+    requiredFields.forEach((field) => {
+      if (String(formData.get(field) ?? "").trim() === "") {
+        nextFieldErrors[field] = "This field is required.";
+      }
+    });
 
     if (!isValidExternalLink(externalLink)) {
-      setError("External link must start with http:// or https://.");
+      nextFieldErrors.external_link = "Enter a valid URL starting with http:// or https://";
+    }
+
+    const firstInvalidField = requiredFields.find((field) => nextFieldErrors[field]) ?? (nextFieldErrors.external_link ? "external_link" : null);
+
+    if (firstInvalidField) {
+      setFieldErrors(nextFieldErrors);
+      setError("Please fix the highlighted fields.");
       setIsSubmitting(false);
+      focusField(event.currentTarget, firstInvalidField);
       return;
     }
 
@@ -63,7 +98,11 @@ export function OpportunityForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-xl shadow-black/10 backdrop-blur sm:p-5">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className="w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-xl shadow-black/10 backdrop-blur sm:p-5"
+    >
       <div className="grid gap-4 sm:grid-cols-2">
         {textFields.map((field) => (
           <label key={field.label} className="grid gap-2 text-sm font-bold text-slate-300">
@@ -71,10 +110,19 @@ export function OpportunityForm() {
             <input
               name={field.name}
               type={field.type}
-              required={field.name !== "deadline"}
-              className="min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+              required={requiredFields.includes(field.name as (typeof requiredFields)[number])}
+              onChange={() => clearFieldError(field.name as keyof FieldErrors)}
+              aria-invalid={Boolean(fieldErrors[field.name as keyof FieldErrors])}
+              className={`min-h-12 w-full min-w-0 rounded-lg border bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:ring-4 ${
+                fieldErrors[field.name as keyof FieldErrors]
+                  ? "border-red-400/60 focus:border-red-300 focus:ring-red-300/10"
+                  : "border-white/10 focus:border-cyan-300 focus:ring-cyan-300/10"
+              }`}
               placeholder={field.placeholder}
             />
+            {fieldErrors[field.name as keyof FieldErrors] ? (
+              <span className="text-xs font-semibold text-red-200">{fieldErrors[field.name as keyof FieldErrors]}</span>
+            ) : null}
           </label>
         ))}
       </div>
@@ -85,7 +133,11 @@ export function OpportunityForm() {
           name="status"
           required
           defaultValue="Open"
-          className="min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-[#0b1220] px-3 text-sm font-medium text-white outline-none transition duration-200 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+          onChange={() => clearFieldError("status")}
+          aria-invalid={Boolean(fieldErrors.status)}
+          className={`min-h-12 w-full min-w-0 rounded-lg border bg-[#0b1220] px-3 text-sm font-medium text-white outline-none transition duration-200 focus:ring-4 ${
+            fieldErrors.status ? "border-red-400/60 focus:border-red-300 focus:ring-red-300/10" : "border-white/10 focus:border-cyan-300 focus:ring-cyan-300/10"
+          }`}
         >
           {statuses.map((status) => (
             <option key={status} value={status}>
@@ -93,6 +145,7 @@ export function OpportunityForm() {
             </option>
           ))}
         </select>
+        {fieldErrors.status ? <span className="text-xs font-semibold text-red-200">{fieldErrors.status}</span> : null}
       </label>
 
       <label className="mt-4 grid gap-2 text-sm font-bold text-slate-300">
@@ -120,9 +173,14 @@ export function OpportunityForm() {
         <input
           name="external_link"
           type="url"
-          className="min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+          onChange={() => clearFieldError("external_link")}
+          aria-invalid={Boolean(fieldErrors.external_link)}
+          className={`min-h-12 w-full min-w-0 rounded-lg border bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:ring-4 ${
+            fieldErrors.external_link ? "border-red-400/60 focus:border-red-300 focus:ring-red-300/10" : "border-white/10 focus:border-cyan-300 focus:ring-cyan-300/10"
+          }`}
           placeholder="https://example.com/apply"
         />
+        {fieldErrors.external_link ? <span className="text-xs font-semibold text-red-200">{fieldErrors.external_link}</span> : null}
       </label>
 
       {error ? (

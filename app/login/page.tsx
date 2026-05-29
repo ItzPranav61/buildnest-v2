@@ -5,17 +5,34 @@ import { FiMail } from "react-icons/fi";
 import { Navbar } from "@/components/Navbar";
 import { createBrowserAuthClient } from "@/lib/auth";
 
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
     setMessage(null);
     setError(null);
+    setEmailError(null);
+
+    if (!isValidEmail(email)) {
+      setEmailError("Enter a valid email address.");
+      setError("Please fix the highlighted fields.");
+      setIsSubmitting(false);
+      const emailField = event.currentTarget.elements.namedItem("email");
+      if (emailField instanceof HTMLElement) {
+        emailField.focus();
+      }
+      return;
+    }
 
     const supabase = createBrowserAuthClient();
     const origin = window.location.origin;
@@ -52,6 +69,7 @@ export default function LoginPage() {
 
         <form
           onSubmit={handleSubmit}
+          noValidate
           className="rounded-lg border border-white/10 bg-white/[0.05] p-5 shadow-2xl shadow-black/30 backdrop-blur sm:p-6"
         >
           <label className="grid gap-2 text-sm font-bold text-slate-300">
@@ -59,19 +77,27 @@ export default function LoginPage() {
             <div className="relative">
               <FiMail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-cyan-200/80" aria-hidden />
               <input
+                name="email"
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setEmailError(null);
+                }}
                 required
-                className="min-h-12 w-full rounded-lg border border-white/10 bg-[#07111f] py-3 pl-10 pr-3 text-sm font-medium text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+                aria-invalid={Boolean(emailError)}
+                className={`min-h-12 w-full rounded-lg border bg-[#07111f] py-3 pl-10 pr-3 text-sm font-medium text-white outline-none transition placeholder:text-slate-500 focus:ring-4 ${
+                  emailError ? "border-red-400/60 focus:border-red-300 focus:ring-red-300/10" : "border-white/10 focus:border-cyan-300 focus:ring-cyan-300/10"
+                }`}
                 placeholder="you@example.com"
               />
             </div>
+            {emailError ? <span className="text-xs font-semibold text-red-200">{emailError}</span> : null}
           </label>
 
           {error ? (
             <div className="mt-4 rounded-lg border border-red-400/30 bg-red-500/10 p-3 text-sm font-semibold text-red-200 backdrop-blur">
-              Unable to sign in: {error}
+              {error === "Please fix the highlighted fields." ? error : `Unable to sign in: ${error}`}
             </div>
           ) : null}
 

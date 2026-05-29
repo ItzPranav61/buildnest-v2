@@ -29,6 +29,9 @@ import { supabase } from "@/lib/supabase";
 import type { Opportunity, OpportunityInsert } from "@/types/opportunity";
 
 const statuses = ["Open", "Upcoming", "Expired"] as const;
+const requiredFields = ["title", "organization", "category", "status"] as const;
+
+type FieldErrors = Partial<Record<(typeof requiredFields)[number] | "external_link", string>>;
 
 const emptyOpportunity: Opportunity = {
   id: "",
@@ -62,6 +65,7 @@ export function DashboardOpportunityManager() {
   const [deletingOpportunity, setDeletingOpportunity] = useState<Opportunity | null>(null);
   const [formState, setFormState] = useState<Opportunity>(emptyOpportunity);
   const [tagsInput, setTagsInput] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const metrics = useMemo(
     () => [
@@ -139,13 +143,30 @@ export function DashboardOpportunityManager() {
     setFormState(opportunity);
     setTagsInput(opportunity.tags.join(", "));
     setError(null);
+    setFieldErrors({});
   }
 
   function closeEditModal() {
     setEditingOpportunity(null);
     setFormState(emptyOpportunity);
     setTagsInput("");
+    setFieldErrors({});
     setIsSaving(false);
+  }
+
+  function clearFieldError(name: keyof FieldErrors) {
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
+  }
+
+  function focusField(form: HTMLFormElement, name: string) {
+    const field = form.elements.namedItem(name);
+    if (field instanceof HTMLElement) {
+      field.focus();
+    }
   }
 
   async function handleUpdate(event: FormEvent<HTMLFormElement>) {
@@ -163,12 +184,28 @@ export function DashboardOpportunityManager() {
 
     setIsSaving(true);
     setError(null);
+    setFieldErrors({});
     const externalLink = normalizeExternalLink(formState.external_link ?? "");
+    const nextFieldErrors: FieldErrors = {};
+
+    requiredFields.forEach((field) => {
+      if (String(formState[field] ?? "").trim() === "") {
+        nextFieldErrors[field] = "This field is required.";
+      }
+    });
 
     if (!isValidExternalLink(externalLink)) {
-      setError("External link must start with http:// or https://.");
+      nextFieldErrors.external_link = "Enter a valid URL starting with http:// or https://";
+    }
+
+    const firstInvalidField = requiredFields.find((field) => nextFieldErrors[field]) ?? (nextFieldErrors.external_link ? "external_link" : null);
+
+    if (firstInvalidField) {
+      setFieldErrors(nextFieldErrors);
+      setError("Please fix the highlighted fields.");
       setToast({ type: "error", message: "Update failed" });
       setIsSaving(false);
+      focusField(event.currentTarget, firstInvalidField);
       return;
     }
 
@@ -425,7 +462,7 @@ export function DashboardOpportunityManager() {
               </button>
             </div>
 
-            <form onSubmit={handleUpdate} className="mt-5 pb-2">
+            <form onSubmit={handleUpdate} noValidate className="mt-5 pb-2">
               <div className="grid gap-4 sm:grid-cols-2">
                 {[
                   ["Title", "title", "text"],
@@ -437,17 +474,29 @@ export function DashboardOpportunityManager() {
                   <label key={name} className="grid gap-2 text-sm font-bold text-slate-300">
                     {label}
                     <input
+                      name={name}
                       type={type}
-                      required={name !== "deadline"}
+                      required={requiredFields.includes(name as (typeof requiredFields)[number])}
                       value={String(formState[name as keyof Opportunity] ?? "")}
                       onChange={(event) =>
-                        setFormState((current) => ({
-                          ...current,
-                          [name]: name === "deadline" ? event.target.value || null : event.target.value
-                        }))
+                        {
+                          clearFieldError(name as keyof FieldErrors);
+                          setFormState((current) => ({
+                            ...current,
+                            [name]: name === "deadline" ? event.target.value || null : event.target.value
+                          }));
+                        }
                       }
-                      className="min-h-12 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+                      aria-invalid={Boolean(fieldErrors[name as keyof FieldErrors])}
+                      className={`min-h-12 rounded-lg border bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:ring-4 ${
+                        fieldErrors[name as keyof FieldErrors]
+                          ? "border-red-400/60 focus:border-red-300 focus:ring-red-300/10"
+                          : "border-white/10 focus:border-cyan-300 focus:ring-cyan-300/10"
+                      }`}
                     />
+                    {fieldErrors[name as keyof FieldErrors] ? (
+                      <span className="text-xs font-semibold text-red-200">{fieldErrors[name as keyof FieldErrors]}</span>
+                    ) : null}
                   </label>
                 ))}
               </div>
@@ -455,10 +504,17 @@ export function DashboardOpportunityManager() {
               <label className="mt-4 grid gap-2 text-sm font-bold text-slate-300">
                 Status
                 <select
+                  name="status"
                   required
                   value={formState.status}
-                  onChange={(event) => setFormState((current) => ({ ...current, status: event.target.value }))}
-                  className="min-h-12 rounded-lg border border-white/10 bg-[#0b1220] px-3 text-sm font-medium text-white outline-none transition duration-200 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+                  onChange={(event) => {
+                    clearFieldError("status");
+                    setFormState((current) => ({ ...current, status: event.target.value }));
+                  }}
+                  aria-invalid={Boolean(fieldErrors.status)}
+                  className={`min-h-12 rounded-lg border bg-[#0b1220] px-3 text-sm font-medium text-white outline-none transition duration-200 focus:ring-4 ${
+                    fieldErrors.status ? "border-red-400/60 focus:border-red-300 focus:ring-red-300/10" : "border-white/10 focus:border-cyan-300 focus:ring-cyan-300/10"
+                  }`}
                 >
                   {statuses.map((status) => (
                     <option key={status} value={status}>
@@ -466,6 +522,7 @@ export function DashboardOpportunityManager() {
                     </option>
                   ))}
                 </select>
+                {fieldErrors.status ? <span className="text-xs font-semibold text-red-200">{fieldErrors.status}</span> : null}
               </label>
 
               <label className="mt-4 grid gap-2 text-sm font-bold text-slate-300">
@@ -481,12 +538,20 @@ export function DashboardOpportunityManager() {
               <label className="mt-4 grid gap-2 text-sm font-bold text-slate-300">
                 External link
                 <input
+                  name="external_link"
                   type="url"
                   value={formState.external_link ?? ""}
-                  onChange={(event) => setFormState((current) => ({ ...current, external_link: event.target.value || null }))}
-                  className="min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
+                  onChange={(event) => {
+                    clearFieldError("external_link");
+                    setFormState((current) => ({ ...current, external_link: event.target.value || null }));
+                  }}
+                  aria-invalid={Boolean(fieldErrors.external_link)}
+                  className={`min-h-12 w-full min-w-0 rounded-lg border bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:ring-4 ${
+                    fieldErrors.external_link ? "border-red-400/60 focus:border-red-300 focus:ring-red-300/10" : "border-white/10 focus:border-cyan-300 focus:ring-cyan-300/10"
+                  }`}
                   placeholder="https://example.com/apply"
                 />
+                {fieldErrors.external_link ? <span className="text-xs font-semibold text-red-200">{fieldErrors.external_link}</span> : null}
               </label>
 
               <label className="mt-4 grid gap-2 text-sm font-bold text-slate-300">
