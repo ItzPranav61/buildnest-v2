@@ -4,6 +4,7 @@ import {
   FiArrowRight,
   FiBookOpen,
   FiBriefcase,
+  FiCalendar,
   FiCheckCircle,
   FiCode,
   FiFlag,
@@ -14,7 +15,7 @@ import {
   FiSearch,
 } from "react-icons/fi";
 import { Navbar } from "@/components/Navbar";
-import { getStatusBadgeClass, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
+import { formatDeadline, getStatusBadgeClass, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
 import { supabase } from "@/lib/supabase";
 import type { Opportunity } from "@/types/opportunity";
 
@@ -75,6 +76,9 @@ function GlassOpportunity({ opportunity }: { opportunity: Opportunity }) {
         </span>
       </div>
       <p className="mt-4 text-sm leading-6 text-slate-300">{opportunity.description}</p>
+      <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-400">
+        <FiCalendar aria-hidden /> Apply by {formatDeadline(opportunity.deadline)}
+      </p>
       <div className="mt-4 flex flex-wrap gap-2">
         {tags.map((tag) => (
           <span key={tag} className="rounded-md border border-white/10 bg-white/[0.07] px-3 py-1 text-xs font-bold text-slate-200">
@@ -228,6 +232,9 @@ export default async function HomePage() {
                         <div>
                           <p className="text-xs font-black uppercase text-slate-500">{opportunity.category}</p>
                           <p className="mt-1 font-black text-white">{opportunity.title}</p>
+                          <p className="mt-1 text-xs font-semibold text-slate-500">
+                            {formatDeadline(opportunity.deadline)}
+                          </p>
                         </div>
                         <span className={`rounded-md px-3 py-1 text-xs font-black ${getStatusBadgeClass(opportunity.status)}`}>
                           {opportunity.status}

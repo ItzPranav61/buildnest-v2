@@ -37,7 +37,7 @@ export function OpportunityForm() {
         .split(",")
         .map((tag) => tag.trim())
         .filter(Boolean),
-      deadline: String(formData.get("deadline") ?? "").trim(),
+      deadline: String(formData.get("deadline") ?? "").trim() || null,
     };
 
     const { error: insertError } = await supabase.from("opportunities").insert(opportunity);
@@ -61,7 +61,7 @@ export function OpportunityForm() {
             <input
               name={field.name}
               type={field.type}
-              required
+              required={field.name !== "deadline"}
               className="min-h-12 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
               placeholder={field.placeholder}
             />

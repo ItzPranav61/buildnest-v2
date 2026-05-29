@@ -7,7 +7,7 @@ export type Opportunity = {
   description: string;
   location: string;
   tags: string[];
-  deadline: string;
+  deadline: string | null;
 };
 
 export type OpportunityInsert = Omit<Opportunity, "id">;

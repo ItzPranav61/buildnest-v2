@@ -1,5 +1,5 @@
 import { FiCalendar, FiMapPin } from "react-icons/fi";
-import { getStatusBadgeClass } from "@/lib/opportunity-utils";
+import { formatDeadline, getStatusBadgeClass } from "@/lib/opportunity-utils";
 import type { Opportunity } from "@/types/opportunity";
 
 type OpportunityCardProps = {
@@ -39,7 +39,7 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
           <FiMapPin aria-hidden /> {opportunity.location}
         </span>
         <span className="inline-flex items-center gap-2">
-          <FiCalendar aria-hidden /> Apply by {opportunity.deadline}
+          <FiCalendar aria-hidden /> Apply by {formatDeadline(opportunity.deadline)}
         </span>
       </div>
     </article>

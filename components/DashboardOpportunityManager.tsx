@@ -17,7 +17,7 @@ import {
 import { OpportunityCard } from "@/components/OpportunityCard";
 import { Toast, type ToastState } from "@/components/Toast";
 import { createBrowserAuthClient } from "@/lib/auth";
-import { getStatusBadgeClass, isOssCategory, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
+import { formatDeadline, getStatusBadgeClass, isOssCategory, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
 import { supabase } from "@/lib/supabase";
 import type { Opportunity, OpportunityInsert } from "@/types/opportunity";
 
@@ -32,7 +32,7 @@ const emptyOpportunity: Opportunity = {
   description: "",
   location: "",
   tags: [],
-  deadline: ""
+  deadline: null
 };
 
 function parseTagsInput(value: string) {
@@ -164,7 +164,7 @@ export function DashboardOpportunityManager() {
       description: formState.description.trim(),
       location: formState.location.trim(),
       tags: parseTagsInput(tagsInput),
-      deadline: formState.deadline
+      deadline: formState.deadline?.trim() || null
     };
 
     const supabase = createBrowserAuthClient();
@@ -336,7 +336,7 @@ export function DashboardOpportunityManager() {
 
                   <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm font-semibold text-slate-400">
-                      {opportunity.location} - {opportunity.deadline}
+                      {opportunity.location} - {formatDeadline(opportunity.deadline)}
                     </p>
                     <div className="grid grid-cols-2 gap-2 sm:flex">
                       <button
@@ -421,9 +421,14 @@ export function DashboardOpportunityManager() {
                     {label}
                     <input
                       type={type}
-                      required
-                      value={formState[name as keyof Opportunity] as string}
-                      onChange={(event) => setFormState((current) => ({ ...current, [name]: event.target.value }))}
+                      required={name !== "deadline"}
+                      value={String(formState[name as keyof Opportunity] ?? "")}
+                      onChange={(event) =>
+                        setFormState((current) => ({
+                          ...current,
+                          [name]: name === "deadline" ? event.target.value || null : event.target.value
+                        }))
+                      }
                       className="min-h-12 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
                     />
                   </label>
