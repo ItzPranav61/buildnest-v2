@@ -15,6 +15,7 @@ import {
   FiRadio,
   FiSearch,
 } from "react-icons/fi";
+import { PageViewTracker, TrackedExternalLink } from "@/components/Analytics";
 import { Navbar } from "@/components/Navbar";
 import { formatDeadline, getStatusBadgeClass, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
 import { supabase } from "@/lib/supabase";
@@ -88,14 +89,15 @@ function GlassOpportunity({ opportunity }: { opportunity: Opportunity }) {
         ))}
       </div>
       {opportunity.external_link ? (
-        <a
+        <TrackedExternalLink
           href={opportunity.external_link}
-          target="_blank"
-          rel="noopener noreferrer"
+          title={opportunity.title}
+          category={opportunity.category}
+          organization={opportunity.organization}
           className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-300 to-blue-400 px-4 py-2 text-sm font-black text-slate-950 transition duration-200 hover:from-cyan-200 hover:to-blue-300"
         >
           Open Opportunity <FiExternalLink aria-hidden />
-        </a>
+        </TrackedExternalLink>
       ) : null}
     </article>
   );
@@ -163,6 +165,7 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#05070d] text-white">
+      <PageViewTracker eventName="homepage_view" />
       <Navbar />
 
       <section
@@ -252,14 +255,15 @@ export default async function HomePage() {
                         </span>
                       </div>
                       {opportunity.external_link ? (
-                        <a
+                        <TrackedExternalLink
                           href={opportunity.external_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          title={opportunity.title}
+                          category={opportunity.category}
+                          organization={opportunity.organization}
                           className="mt-3 inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-cyan-300/25 bg-cyan-300/10 px-3 py-2 text-xs font-black text-cyan-100 transition hover:bg-cyan-300/15"
                         >
                           Open Opportunity <FiExternalLink aria-hidden />
-                        </a>
+                        </TrackedExternalLink>
                       ) : null}
                     </div>
                   ))

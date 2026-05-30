@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FiArrowLeft, FiCalendar, FiExternalLink, FiMapPin } from "react-icons/fi";
+import { PageViewTracker, TrackedExternalLink } from "@/components/Analytics";
 import { Navbar } from "@/components/Navbar";
 import { OpportunityCard } from "@/components/OpportunityCard";
 import { formatDeadline, getStatusBadgeClass, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
@@ -33,6 +34,7 @@ function normalizeOpportunity(opportunity: unknown) {
 function StatePanel({ title, description }: { title: string; description: string }) {
   return (
     <main className="min-h-screen bg-[#040814] text-white">
+      <PageViewTracker eventName="opportunity_detail_view" />
       <Navbar />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-8">
         <Link href="/opportunities" className="inline-flex items-center gap-2 text-sm font-black text-cyan-200 hover:text-cyan-100">
@@ -91,6 +93,7 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
 
   return (
     <main className="min-h-screen bg-[#040814] text-white">
+      <PageViewTracker eventName="opportunity_detail_view" />
       <Navbar />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-8">
         <Link href="/opportunities" className="inline-flex items-center gap-2 text-sm font-black text-cyan-200 hover:text-cyan-100">
@@ -132,14 +135,15 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
             <p className="mt-7 whitespace-pre-wrap break-words text-base leading-8 text-slate-300">{opportunity.description}</p>
 
             {opportunity.external_link ? (
-              <a
+              <TrackedExternalLink
                 href={opportunity.external_link}
-                target="_blank"
-                rel="noopener noreferrer"
+                title={opportunity.title}
+                category={opportunity.category}
+                organization={opportunity.organization}
                 className="mt-8 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-300 to-blue-400 px-5 py-3 text-sm font-black text-slate-950 transition duration-200 hover:from-cyan-200 hover:to-blue-300 sm:w-auto"
               >
                 Open Opportunity <FiExternalLink aria-hidden />
-              </a>
+              </TrackedExternalLink>
             ) : null}
           </article>
 

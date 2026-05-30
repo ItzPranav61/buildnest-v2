@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { FiMail } from "react-icons/fi";
+import { PageViewTracker } from "@/components/Analytics";
 import { Navbar } from "@/components/Navbar";
 import { createBrowserAuthClient } from "@/lib/auth";
 
@@ -55,6 +56,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-[#040814] text-white">
+      <PageViewTracker eventName="login_view" />
       <Navbar />
       <section className="mx-auto grid min-h-[calc(100vh-73px)] w-full max-w-7xl min-w-0 items-center gap-8 px-4 py-12 sm:px-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:py-16">
         <div className="max-w-2xl min-w-0">

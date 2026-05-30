@@ -1,3 +1,4 @@
+import { PageViewTracker } from "@/components/Analytics";
 import { Navbar } from "@/components/Navbar";
 import { OpportunitiesList } from "@/components/OpportunitiesList";
 import { supabase } from "@/lib/supabase";
@@ -28,6 +29,7 @@ export default async function OpportunitiesPage() {
 
   return (
     <main className="min-h-screen bg-[#040814] text-white">
+      <PageViewTracker eventName="opportunities_view" />
       <Navbar />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
