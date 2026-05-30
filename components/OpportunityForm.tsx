@@ -82,7 +82,9 @@ export function OpportunityForm() {
         .map((tag) => tag.trim())
         .filter(Boolean),
       deadline: String(formData.get("deadline") ?? "").trim() || null,
-      external_link: externalLink
+      external_link: externalLink,
+      review_status: "approved",
+      is_automated: false
     };
 
     const { error: insertError } = await supabase.from("opportunities").insert(opportunity);

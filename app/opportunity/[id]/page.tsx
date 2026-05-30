@@ -13,7 +13,7 @@ type OpportunityDetailPageProps = {
   params: Promise<{ id: string }>;
 };
 
-const selectFields = "id, title, organization, category, status, description, location, tags, deadline, external_link";
+const selectFields = "id, title, organization, category, status, description, location, tags, deadline, external_link, source_url, source_name, scraped_at, review_status, is_automated";
 
 function isValidId(id: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
@@ -50,7 +50,12 @@ function StatePanel({ title, description }: { title: string; description: string
 }
 
 async function getOpportunity(id: string) {
-  const { data, error } = await supabase.from("opportunities").select(selectFields).eq("id", id).maybeSingle();
+  const { data, error } = await supabase
+    .from("opportunities")
+    .select(selectFields)
+    .eq("id", id)
+    .eq("review_status", "approved")
+    .maybeSingle();
 
   if (error) {
     return { opportunity: null, related: [], error: error.message };
@@ -66,6 +71,7 @@ async function getOpportunity(id: string) {
     .from("opportunities")
     .select(selectFields)
     .eq("category", opportunity.category)
+    .eq("review_status", "approved")
     .neq("id", id)
     .limit(3);
 

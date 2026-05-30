@@ -130,7 +130,8 @@ function NestBotImage({ className = "" }: { className?: string }) {
 async function getOpportunities() {
   const { data, error } = await supabase
     .from("opportunities")
-    .select("id, title, organization, category, status, description, location, tags, deadline, external_link");
+    .select("id, title, organization, category, status, description, location, tags, deadline, external_link, source_url, source_name, scraped_at, review_status, is_automated")
+    .eq("review_status", "approved");
 
   if (error) {
     return { opportunities: [], error: error.message };

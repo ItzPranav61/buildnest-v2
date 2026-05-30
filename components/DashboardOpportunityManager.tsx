@@ -26,9 +26,16 @@ import {
   sortOpportunitiesByDeadline
 } from "@/lib/opportunity-utils";
 import { supabase } from "@/lib/supabase";
-import type { Opportunity, OpportunityInsert } from "@/types/opportunity";
+import type { Opportunity, OpportunityInsert, ReviewStatus } from "@/types/opportunity";
 
 const statuses = ["Open", "Upcoming", "Expired"] as const;
+const reviewTabs: { label: string; value: ReviewStatus }[] = [
+  { label: "Approved", value: "approved" },
+  { label: "Pending", value: "pending" },
+  { label: "Rejected", value: "rejected" }
+];
+const selectFields =
+  "id, title, organization, category, status, description, location, tags, deadline, external_link, source_url, source_name, scraped_at, review_status, is_automated";
 const requiredFields = ["title", "organization", "category", "status"] as const;
 
 type FieldErrors = Partial<Record<(typeof requiredFields)[number] | "external_link", string>>;
@@ -43,7 +50,12 @@ const emptyOpportunity: Opportunity = {
   location: "",
   tags: [],
   deadline: null,
-  external_link: null
+  external_link: null,
+  source_url: null,
+  source_name: null,
+  scraped_at: null,
+  review_status: "approved",
+  is_automated: false
 };
 
 function parseTagsInput(value: string) {
@@ -55,7 +67,6 @@ function parseTagsInput(value: string) {
 
 export function DashboardOpportunityManager() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [newestOpportunity, setNewestOpportunity] = useState<Opportunity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -66,13 +77,18 @@ export function DashboardOpportunityManager() {
   const [formState, setFormState] = useState<Opportunity>(emptyOpportunity);
   const [tagsInput, setTagsInput] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [activeReviewStatus, setActiveReviewStatus] = useState<ReviewStatus>("approved");
+  const visibleOpportunities = useMemo(
+    () => opportunities.filter((opportunity) => opportunity.review_status === activeReviewStatus),
+    [activeReviewStatus, opportunities]
+  );
 
   const metrics = useMemo(
     () => [
-      { label: "Live opportunities", value: opportunities.length, icon: FiBriefcase },
-      { label: "Active tracks", value: opportunities.filter((opportunity) => opportunity.status === "Open").length, icon: FiCheckCircle },
-      { label: "Next moves", value: opportunities.filter((opportunity) => opportunity.status === "Upcoming").length, icon: FiClock },
-      { label: "Archived signals", value: opportunities.filter((opportunity) => opportunity.status === "Expired").length, icon: FiArchive }
+      { label: "Approved", value: opportunities.filter((opportunity) => opportunity.review_status === "approved").length, icon: FiCheckCircle },
+      { label: "Pending review", value: opportunities.filter((opportunity) => opportunity.review_status === "pending").length, icon: FiClock },
+      { label: "Rejected", value: opportunities.filter((opportunity) => opportunity.review_status === "rejected").length, icon: FiArchive },
+      { label: "Total records", value: opportunities.length, icon: FiBriefcase }
     ],
     [opportunities]
   );
@@ -101,7 +117,8 @@ export function DashboardOpportunityManager() {
     ],
     [opportunities]
   );
-  const nearestDeadlineOpportunity = opportunities[0] ?? null;
+  const nearestDeadlineOpportunity = visibleOpportunities[0] ?? null;
+  const newestOpportunityInView = visibleOpportunities[visibleOpportunities.length - 1] ?? null;
 
   async function fetchOpportunities(options: { showRefreshing?: boolean } = {}) {
     if (options.showRefreshing) {
@@ -113,7 +130,8 @@ export function DashboardOpportunityManager() {
 
     const { data, error: fetchError } = await supabase
       .from("opportunities")
-      .select("id, title, organization, category, status, description, location, tags, deadline, external_link");
+      .select(selectFields)
+      .in("review_status", ["approved", "pending", "rejected"]);
 
     if (fetchError) {
       setError(fetchError.message);
@@ -128,7 +146,6 @@ export function DashboardOpportunityManager() {
         tags: Array.isArray(opportunity.tags) ? opportunity.tags : []
       })) as Opportunity[];
 
-    setNewestOpportunity(normalizedOpportunities[normalizedOpportunities.length - 1] ?? null);
     setOpportunities(sortOpportunitiesByDeadline(normalizedOpportunities));
     setIsLoading(false);
     setIsRefreshing(false);
@@ -218,7 +235,12 @@ export function DashboardOpportunityManager() {
       location: formState.location.trim(),
       tags: parseTagsInput(tagsInput),
       deadline: formState.deadline?.trim() || null,
-      external_link: externalLink
+      external_link: externalLink,
+      review_status: formState.review_status,
+      is_automated: formState.is_automated,
+      source_url: formState.source_url,
+      source_name: formState.source_name,
+      scraped_at: formState.scraped_at
     };
 
     const supabase = createBrowserAuthClient();
@@ -226,7 +248,7 @@ export function DashboardOpportunityManager() {
       .from("opportunities")
       .update(payload)
       .eq("id", editingOpportunity.id)
-      .select("id, title, organization, category, status, description, location, tags, deadline, external_link");
+      .select(selectFields);
 
     if (updateError) {
       setError(updateError.message);
@@ -285,10 +307,60 @@ export function DashboardOpportunityManager() {
     }
 
     setOpportunities((current) => current.filter((opportunity) => opportunity.id !== deletingOpportunity.id));
-    setNewestOpportunity((current) => (current?.id === deletingOpportunity.id ? null : current));
     setDeletingOpportunity(null);
     setIsSaving(false);
     setToast({ type: "success", message: "Opportunity deleted" });
+    await fetchOpportunities();
+  }
+
+  async function updateReviewStatus(opportunity: Opportunity, reviewStatus: ReviewStatus) {
+    if (!opportunity.id) {
+      setError("Unable to update review status: missing row id.");
+      setToast({ type: "error", message: "Review update failed" });
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    const supabase = createBrowserAuthClient();
+    const { data: updatedRows, error: updateError } = await supabase
+      .from("opportunities")
+      .update({ review_status: reviewStatus })
+      .eq("id", opportunity.id)
+      .select(selectFields);
+
+    if (updateError) {
+      setError(updateError.message);
+      setToast({ type: "error", message: "Review update failed" });
+      setIsSaving(false);
+      return;
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      setError("Review status did not update. Check that Supabase RLS allows authenticated updates.");
+      setToast({ type: "error", message: "Review update failed" });
+      setIsSaving(false);
+      return;
+    }
+
+    const updatedOpportunity = {
+      ...updatedRows[0],
+      tags: Array.isArray(updatedRows[0].tags) ? updatedRows[0].tags : []
+    } as Opportunity;
+
+    setOpportunities((current) =>
+      sortOpportunitiesByDeadline(
+        current.map((currentOpportunity) =>
+          currentOpportunity.id === opportunity.id ? updatedOpportunity : currentOpportunity
+        )
+      )
+    );
+    setToast({
+      type: "success",
+      message: reviewStatus === "approved" ? "Opportunity approved" : "Opportunity rejected"
+    });
+    setIsSaving(false);
     await fetchOpportunities();
   }
 
@@ -329,7 +401,7 @@ export function DashboardOpportunityManager() {
             <div>
               <h2 className="text-xl font-black text-white">Manage opportunities</h2>
               <p className="mt-1 text-sm font-semibold text-slate-400">
-                {isLoading ? "Loading" : opportunities.length} live listings
+                {isLoading ? "Loading" : visibleOpportunities.length} {activeReviewStatus} listings
               </p>
             </div>
             <button
@@ -347,22 +419,45 @@ export function DashboardOpportunityManager() {
             <div className="mt-4 rounded-lg border border-red-400/30 bg-red-500/10 p-3 text-sm font-semibold text-red-200">{error}</div>
           ) : null}
 
+          <div className="mt-5 grid gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-2 min-[520px]:grid-cols-3">
+            {reviewTabs.map((tab) => {
+              const count = opportunities.filter((opportunity) => opportunity.review_status === tab.value).length;
+              const isActive = activeReviewStatus === tab.value;
+
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setActiveReviewStatus(tab.value)}
+                  className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-black transition duration-200 ${
+                    isActive
+                      ? "bg-cyan-300 text-slate-950"
+                      : "border border-white/10 bg-white/[0.04] text-slate-300 hover:border-cyan-300/40 hover:bg-cyan-300/10 hover:text-white"
+                  }`}
+                >
+                  {tab.label}
+                  <span className={`rounded-md px-2 py-0.5 text-xs ${isActive ? "bg-slate-950/10" : "bg-white/10"}`}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
           {isLoading ? (
             <div className="mt-5 grid w-full max-w-full min-w-0 gap-4 md:grid-cols-2">
               {[1, 2, 3, 4].map((item) => (
                 <div key={item} className="h-52 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]" />
               ))}
             </div>
-          ) : opportunities.length === 0 ? (
+          ) : visibleOpportunities.length === 0 ? (
             <div className="mt-5 w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center sm:p-10">
-              <h3 className="text-lg font-black text-white">No opportunities to manage</h3>
+              <h3 className="text-lg font-black text-white">No {activeReviewStatus} opportunities</h3>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">
-                Published opportunities will appear here for authenticated admins to edit or remove.
+                Opportunities in this review state will appear here for authenticated admins.
               </p>
             </div>
           ) : (
             <div className="mt-5 grid w-full max-w-full min-w-0 gap-4 md:grid-cols-2">
-              {opportunities.map((opportunity, index) => (
+              {visibleOpportunities.map((opportunity, index) => (
                 <article
                   key={`${opportunity.title}-${opportunity.organization}-${opportunity.deadline}-${index}`}
                   className="w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 sm:p-5"
@@ -378,7 +473,25 @@ export function DashboardOpportunityManager() {
                     </span>
                   </div>
 
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="rounded-md border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-black capitalize text-slate-300">
+                      {opportunity.review_status}
+                    </span>
+                    {opportunity.is_automated ? (
+                      <span className="rounded-md border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-black text-cyan-100">
+                        Automated
+                      </span>
+                    ) : null}
+                  </div>
+
                   <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-300">{opportunity.description}</p>
+
+                  {opportunity.source_url ? (
+                    <p className="mt-3 break-words text-xs font-semibold text-slate-500">
+                      Source: {opportunity.source_name ? `${opportunity.source_name} - ` : ""}
+                      {opportunity.source_url}
+                    </p>
+                  ) : null}
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     {opportunity.tags.map((tag) => (
@@ -392,7 +505,29 @@ export function DashboardOpportunityManager() {
                     <p className="min-w-0 break-words text-sm font-semibold text-slate-400">
                       {opportunity.location} - {formatDeadline(opportunity.deadline)}
                     </p>
-                    <div className="grid min-w-0 grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex">
+                    <div className="grid min-w-0 grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:flex-wrap">
+                      {opportunity.review_status === "pending" ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => updateReviewStatus(opportunity, "approved")}
+                            disabled={isSaving}
+                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 text-sm font-bold text-cyan-100 transition duration-200 hover:bg-cyan-300/15 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <FiCheckCircle aria-hidden />
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateReviewStatus(opportunity, "rejected")}
+                            disabled={isSaving}
+                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm font-bold text-red-200 transition duration-200 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <FiX aria-hidden />
+                            Reject
+                          </button>
+                        </>
+                      ) : null}
                       <button
                         type="button"
                         onClick={() => openEditModal(opportunity)}
@@ -430,15 +565,15 @@ export function DashboardOpportunityManager() {
             </div>
           )}
 
-          <h2 className="mb-4 mt-6 text-xl font-black text-white">Newest opportunity</h2>
+          <h2 className="mb-4 mt-6 text-xl font-black text-white">Newest in view</h2>
           {isLoading ? (
             <div className="h-72 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03] shadow-sm" />
-          ) : newestOpportunity ? (
-            <OpportunityCard opportunity={newestOpportunity} />
+          ) : newestOpportunityInView ? (
+            <OpportunityCard opportunity={newestOpportunityInView} />
           ) : (
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center shadow-sm">
-              <h3 className="text-lg font-black text-white">No newest opportunity</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-400">Newly added opportunities will appear here.</p>
+              <h3 className="text-lg font-black text-white">No opportunity in view</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-400">Switch review tabs or add an opportunity to populate this panel.</p>
             </div>
           )}
         </section>
