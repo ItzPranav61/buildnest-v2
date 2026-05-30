@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "backfill:links": "tsx scripts/backfill-external-links.ts"
+    "backfill:links": "tsx scripts/backfill-external-links.ts",
+    "ingest:gssoc": "tsx scripts/ingest-gssoc.ts"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.15.0",
