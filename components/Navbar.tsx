@@ -50,13 +50,6 @@ export function Navbar() {
           ))}
         </div>
 
-        <Link
-          href="/add"
-          className="hidden min-h-10 items-center justify-center gap-2 rounded-lg bg-cyan-300 px-4 py-2 text-sm font-black text-slate-950 transition duration-200 hover:bg-cyan-200 md:inline-flex"
-        >
-          <FiPlusCircle aria-hidden /> Add
-        </Link>
-
         <button
           type="button"
           onClick={() => setIsOpen((current) => !current)}

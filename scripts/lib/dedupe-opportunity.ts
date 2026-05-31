@@ -4,6 +4,10 @@ import type { DuplicateRow, PendingOpportunityPayload } from "./types";
 function normalizeDedupeText(value: string) {
   return value
     .toLowerCase()
+    .replace(/\bgssoc\b/g, "girlscript summer of code")
+    .replace(/\bgsoc\b/g, "google summer of code")
+    .replace(/\bgirl script\b/g, "girlscript")
+    .replace(/\bgirlscript summer of code\b/g, "girlscript summer of code")
     .replace(/[^\w\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();

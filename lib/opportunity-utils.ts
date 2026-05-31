@@ -31,16 +31,17 @@ function startOfTodayTime() {
 
 function deadlineSortValue(opportunity: Opportunity) {
   const time = validDeadlineTime(opportunity.deadline);
+  const statusRank = opportunity.status === "Open" ? 0 : opportunity.status === "Upcoming" ? 1 : opportunity.status === "Expired" ? 3 : 2;
 
   if (opportunity.status === "Expired" || (time !== null && time < startOfTodayTime())) {
-    return { rank: 2, time: time ?? Number.POSITIVE_INFINITY };
+    return { rank: 2, statusRank, time: time ?? Number.POSITIVE_INFINITY };
   }
 
   if (time === null) {
-    return { rank: 1, time: Number.POSITIVE_INFINITY };
+    return { rank: 1, statusRank, time: Number.POSITIVE_INFINITY };
   }
 
-  return { rank: 0, time };
+  return { rank: 0, statusRank, time };
 }
 
 export function sortOpportunitiesByDeadline(opportunities: Opportunity[]) {
@@ -50,6 +51,10 @@ export function sortOpportunitiesByDeadline(opportunities: Opportunity[]) {
 
     if (aDeadline.rank !== bDeadline.rank) {
       return aDeadline.rank - bDeadline.rank;
+    }
+
+    if (aDeadline.statusRank !== bDeadline.statusRank) {
+      return aDeadline.statusRank - bDeadline.statusRank;
     }
 
     return aDeadline.time - bDeadline.time;

@@ -37,10 +37,12 @@ export default function LoginPage() {
 
     const supabase = createBrowserAuthClient();
     const origin = window.location.origin;
+    const nextParam = new URLSearchParams(window.location.search).get("next");
+    const safeNext = nextParam?.startsWith("/") ? nextParam : "/dashboard";
     const { error: signInError } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${origin}/auth/callback?next=/dashboard`
+        emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`
       }
     });
 
