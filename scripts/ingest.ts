@@ -6,9 +6,13 @@ import { findDuplicateOpportunity } from "./lib/dedupe-opportunity";
 import { insertPendingOpportunity } from "./lib/insert-pending-opportunity";
 import { normalizeOpportunityDraft, validateOpportunityPayload } from "./lib/normalize-opportunity";
 import type { IngestionMode, SourceAdapter } from "./lib/types";
+import { gsocAdapter } from "./sources/gsoc";
 import { gssocAdapter } from "./sources/gssoc";
 
-const adapters = new Map<string, SourceAdapter>([[gssocAdapter.id, gssocAdapter]]);
+const adapters = new Map<string, SourceAdapter>([
+  [gssocAdapter.id, gssocAdapter],
+  [gsocAdapter.id, gsocAdapter]
+]);
 
 function loadEnvFile(path: string) {
   if (!existsSync(path)) {
@@ -82,9 +86,24 @@ async function runAdapter(adapter: SourceAdapter, mode: IngestionMode, supabase:
     const duplicate = await findDuplicateOpportunity(supabase, payload);
 
     if (duplicate) {
+      const duplicateTitleDiffers = duplicate.row.title.trim().toLowerCase() !== payload.title.trim().toLowerCase();
+
       console.log(
         `[${adapter.id}] Skipped duplicate (${duplicate.reason}): ${duplicate.row.id} | ${duplicate.row.title} | ${duplicate.row.review_status}`
       );
+      console.log(`[${adapter.id}] Duplicate details:`);
+      console.log(`  matched_by: ${duplicate.reason}`);
+      console.log(`  existing row id: ${duplicate.row.id}`);
+      console.log(`  existing title: ${duplicate.row.title}`);
+      console.log(`  existing review_status: ${duplicate.row.review_status}`);
+      console.log(`  incoming title: ${payload.title}`);
+      console.log(`  incoming source_name: ${payload.source_name}`);
+      console.log(`  incoming source_url: ${payload.source_url}`);
+
+      if (duplicateTitleDiffers) {
+        console.log(`[${adapter.id}] Warning: Duplicate found with different title. Review existing row for freshness.`);
+      }
+
       return {
         source_name: adapter.source_name,
         source_url: adapter.source_url,

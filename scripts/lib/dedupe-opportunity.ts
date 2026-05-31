@@ -1,6 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DuplicateRow, PendingOpportunityPayload } from "./types";
 
+function normalizeDedupeText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export async function findDuplicateOpportunity(supabase: SupabaseClient, payload: PendingOpportunityPayload) {
   const { data: sourceMatches, error: sourceError } = await supabase
     .from("opportunities")
@@ -37,6 +45,31 @@ export async function findDuplicateOpportunity(supabase: SupabaseClient, payload
     return {
       reason: "external_link",
       row: linkMatches[0] as DuplicateRow
+    };
+  }
+
+  const { data: possibleRows, error: possibleRowsError } = await supabase
+    .from("opportunities")
+    .select("id, title, organization, review_status, source_url, external_link");
+
+  if (possibleRowsError) {
+    throw new Error(`Unable to check duplicate title + organization: ${possibleRowsError.message}`);
+  }
+
+  const payloadTitle = normalizeDedupeText(payload.title);
+  const payloadOrganization = normalizeDedupeText(payload.organization);
+  const titleOrganizationMatch = possibleRows?.find((row) => {
+    const candidate = row as DuplicateRow & { organization?: string | null };
+    return (
+      normalizeDedupeText(candidate.title ?? "") === payloadTitle &&
+      normalizeDedupeText(candidate.organization ?? "") === payloadOrganization
+    );
+  });
+
+  if (titleOrganizationMatch) {
+    return {
+      reason: "title_organization",
+      row: titleOrganizationMatch as DuplicateRow
     };
   }
 
