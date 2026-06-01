@@ -2,7 +2,9 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
+  FiActivity,
   FiArchive,
+  FiAlertTriangle,
   FiBookOpen,
   FiBriefcase,
   FiCheckCircle,
@@ -11,6 +13,7 @@ import {
   FiEdit2,
   FiFlag,
   FiRefreshCw,
+  FiShield,
   FiTrash2,
   FiX
 } from "react-icons/fi";
@@ -39,6 +42,23 @@ const selectFields =
 const requiredFields = ["title", "organization", "category", "status"] as const;
 
 type FieldErrors = Partial<Record<(typeof requiredFields)[number] | "external_link", string>>;
+type AutomationRunStatus = "success" | "failed" | "skipped" | "partial";
+type AutomationRun = {
+  id: string;
+  source_name: string;
+  source_url: string | null;
+  status: AutomationRunStatus;
+  mode: "dry_run" | "insert" | string;
+  inserted_count: number;
+  duplicate_count: number;
+  failed_count: number;
+  message: string | null;
+  error_message: string | null;
+  started_at: string;
+  finished_at: string | null;
+  duration_ms: number | null;
+  created_at: string;
+};
 
 const emptyOpportunity: Opportunity = {
   id: "",
@@ -65,8 +85,80 @@ function parseTagsInput(value: string) {
     .filter(Boolean);
 }
 
+function formatRunTime(value: string | null) {
+  if (!value) {
+    return "Never";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown";
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function formatDuration(durationMs: number | null) {
+  if (durationMs === null || Number.isNaN(durationMs)) {
+    return "-";
+  }
+
+  if (durationMs < 1000) {
+    return `${durationMs}ms`;
+  }
+
+  return `${(durationMs / 1000).toFixed(1)}s`;
+}
+
+function getAutomationHealth(runs: AutomationRun[]) {
+  if (runs.length === 0) {
+    return "Unknown";
+  }
+
+  if (runs.some((run) => run.status === "failed")) {
+    return "Failing";
+  }
+
+  if (runs.some((run) => run.status === "skipped" || run.status === "partial")) {
+    return "Warning";
+  }
+
+  return "Healthy";
+}
+
+function getSourceHealthLabel(status: AutomationRunStatus) {
+  if (status === "success") {
+    return "Healthy";
+  }
+
+  if (status === "failed") {
+    return "Failing";
+  }
+
+  return "Warning";
+}
+
+function getHealthBadgeClass(status: AutomationRunStatus) {
+  if (status === "success") {
+    return "border-emerald-300/25 bg-emerald-400/10 text-emerald-100";
+  }
+
+  if (status === "failed") {
+    return "border-red-400/30 bg-red-500/10 text-red-200";
+  }
+
+  return "border-amber-300/30 bg-amber-400/10 text-amber-100";
+}
+
 export function DashboardOpportunityManager() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [automationRuns, setAutomationRuns] = useState<AutomationRun[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -78,6 +170,23 @@ export function DashboardOpportunityManager() {
   const [tagsInput, setTagsInput] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [activeReviewStatus, setActiveReviewStatus] = useState<ReviewStatus>("approved");
+  const sourceHealthRows = useMemo(() => {
+    const latestBySource = new Map<string, AutomationRun>();
+
+    automationRuns.forEach((run) => {
+      const current = latestBySource.get(run.source_name);
+      const currentTime = current ? new Date(current.started_at).getTime() : 0;
+      const nextTime = new Date(run.started_at).getTime();
+
+      if (!current || nextTime > currentTime) {
+        latestBySource.set(run.source_name, run);
+      }
+    });
+
+    return Array.from(latestBySource.values()).sort(
+      (first, second) => new Date(second.started_at).getTime() - new Date(first.started_at).getTime()
+    );
+  }, [automationRuns]);
   const visibleOpportunities = useMemo(
     () => opportunities.filter((opportunity) => opportunity.review_status === activeReviewStatus),
     [activeReviewStatus, opportunities]
@@ -117,8 +226,40 @@ export function DashboardOpportunityManager() {
     ],
     [opportunities]
   );
+  const automationMetrics = useMemo(() => {
+    const lastSuccessfulRun = automationRuns.find((run) => run.status === "success") ?? null;
+    const duplicatesSkipped = automationRuns.reduce((total, run) => total + run.duplicate_count, 0);
+    const failedRuns = automationRuns.filter((run) => run.status === "failed").length;
+
+    return [
+      { label: "Total sources", value: String(sourceHealthRows.length), icon: FiActivity },
+      { label: "Last successful run", value: lastSuccessfulRun ? formatRunTime(lastSuccessfulRun.started_at) : "None", icon: FiCheckCircle },
+      { label: "Pending review count", value: String(opportunities.filter((opportunity) => opportunity.review_status === "pending").length), icon: FiClock },
+      { label: "Duplicates skipped", value: String(duplicatesSkipped), icon: FiRefreshCw },
+      { label: "Failed runs", value: String(failedRuns), icon: FiAlertTriangle },
+      { label: "Automation health", value: getAutomationHealth(automationRuns), icon: FiShield }
+    ];
+  }, [automationRuns, opportunities, sourceHealthRows.length]);
   const nearestDeadlineOpportunity = visibleOpportunities[0] ?? null;
   const newestOpportunityInView = visibleOpportunities[visibleOpportunities.length - 1] ?? null;
+
+  async function fetchAutomationRuns() {
+    const supabase = createBrowserAuthClient();
+    const { data, error: fetchError } = await supabase
+      .from("automation_runs")
+      .select(
+        "id, source_name, source_url, status, mode, inserted_count, duplicate_count, failed_count, message, error_message, started_at, finished_at, duration_ms, created_at"
+      )
+      .eq("mode", "insert")
+      .order("started_at", { ascending: false })
+      .limit(50);
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    setAutomationRuns((data ?? []) as AutomationRun[]);
+  }
 
   async function fetchOpportunities(options: { showRefreshing?: boolean } = {}) {
     if (options.showRefreshing) {
@@ -139,6 +280,13 @@ export function DashboardOpportunityManager() {
       setIsLoading(false);
       setIsRefreshing(false);
       return;
+    }
+
+    try {
+      await fetchAutomationRuns();
+    } catch (automationFetchError) {
+      const automationMessage = automationFetchError instanceof Error ? automationFetchError.message : String(automationFetchError);
+      setError(`Automation metrics unavailable: ${automationMessage}`);
     }
 
     const normalizedOpportunities = (data ?? []).map((opportunity) => ({
@@ -394,6 +542,87 @@ export function DashboardOpportunityManager() {
           </div>
         ))}
       </div>
+
+      <section className="mt-8 w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-xl shadow-black/10 backdrop-blur sm:p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-bold uppercase tracking-[0.16em] text-cyan-300">Automation</p>
+            <h2 className="mt-1 text-2xl font-black text-white">Ingestion observability</h2>
+          </div>
+          <p className="text-sm font-semibold text-slate-400">Insert-mode runs only</p>
+        </div>
+
+        <div className="mt-5 grid w-full max-w-full min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-6">
+          {automationMetrics.map((item) => (
+            <div key={item.label} className="w-full max-w-full min-w-0 rounded-xl border border-white/10 bg-[#07111f]/70 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="min-w-0 break-words text-xs font-black uppercase tracking-[0.12em] text-slate-500">{item.label}</span>
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-cyan-300/15 text-cyan-200">
+                  <item.icon aria-hidden />
+                </span>
+              </div>
+              <p className="mt-3 break-words text-2xl font-black text-white">{isLoading ? "..." : item.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 overflow-hidden rounded-xl border border-white/10 bg-[#07111f]/70">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="border-b border-white/10 bg-white/[0.04] text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Source</th>
+                  <th className="px-4 py-3">Last run</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Inserted</th>
+                  <th className="px-4 py-3">Duplicates</th>
+                  <th className="px-4 py-3">Duration</th>
+                  <th className="px-4 py-3">Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  [1, 2].map((item) => (
+                    <tr key={item} className="border-b border-white/10 last:border-b-0">
+                      <td colSpan={7} className="px-4 py-4">
+                        <div className="h-6 animate-pulse rounded bg-white/[0.06]" />
+                      </td>
+                    </tr>
+                  ))
+                ) : sourceHealthRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center">
+                      <p className="font-black text-white">No automation runs yet.</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-500">Insert-mode ingestion logs will appear here after the next run.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  sourceHealthRows.map((run) => (
+                    <tr key={run.id} className="border-b border-white/10 last:border-b-0">
+                      <td className="px-4 py-4">
+                        <p className="font-black text-white">{run.source_name}</p>
+                        {run.source_url ? <p className="mt-1 max-w-48 truncate text-xs font-semibold text-slate-500">{run.source_url}</p> : null}
+                      </td>
+                      <td className="px-4 py-4 font-semibold text-slate-300">{formatRunTime(run.started_at)}</td>
+                      <td className="px-4 py-4">
+                        <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-black ${getHealthBadgeClass(run.status)}`}>
+                          {getSourceHealthLabel(run.status)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 font-black text-white">{run.inserted_count}</td>
+                      <td className="px-4 py-4 font-black text-white">{run.duplicate_count}</td>
+                      <td className="px-4 py-4 font-semibold text-slate-300">{formatDuration(run.duration_ms)}</td>
+                      <td className="px-4 py-4">
+                        <p className="max-w-72 truncate font-semibold text-slate-300">{run.error_message ?? run.message ?? "-"}</p>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
       <div className="mt-8 grid w-full max-w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
         <section className="w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-xl shadow-black/10 backdrop-blur sm:p-5">
