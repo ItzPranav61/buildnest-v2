@@ -153,3 +153,117 @@ review_status = 'approved'
 ```
 
 That app change should happen after the schema migration is live.
+
+## 002 Automation Runs
+
+File:
+
+```text
+supabase/migrations/002_automation_runs.sql
+```
+
+Purpose:
+
+- Create `automation_runs` for ingestion observability.
+- Track source run status, mode, counts, timing, and safe messages.
+- Keep automation logs private from public users.
+- Allow authenticated admins to read logs for future dashboard metrics.
+- Allow service role scripts to insert logs.
+
+## How To Run 002 Manually
+
+1. Open the Supabase project dashboard.
+2. Go to SQL Editor.
+3. Open `002_automation_runs.sql` locally.
+4. Paste the SQL into Supabase SQL Editor.
+5. Review the SQL before running.
+6. Run it once.
+
+Do not run the rollback comments unless intentionally removing automation run logging.
+
+## 002 Verification SQL
+
+Verify the table exists and is empty after the first migration:
+
+```sql
+select count(*) as total_runs
+from public.automation_runs;
+```
+
+Expected result immediately after running the migration:
+
+```text
+total_runs = 0
+```
+
+Verify latest run by source query works:
+
+```sql
+select distinct on (source_name)
+  source_name,
+  source_url,
+  status,
+  mode,
+  inserted_count,
+  duplicate_count,
+  failed_count,
+  message,
+  error_message,
+  started_at,
+  finished_at,
+  duration_ms
+from public.automation_runs
+order by source_name, started_at desc;
+```
+
+Verify grouped status query works:
+
+```sql
+select
+  status,
+  count(*) as run_count
+from public.automation_runs
+group by status
+order by status;
+```
+
+Verify failed runs query works:
+
+```sql
+select
+  source_name,
+  source_url,
+  mode,
+  message,
+  error_message,
+  started_at,
+  finished_at,
+  duration_ms
+from public.automation_runs
+where status = 'failed'
+order by started_at desc;
+```
+
+Verify RLS is enabled:
+
+```sql
+select
+  schemaname,
+  tablename,
+  rowsecurity
+from pg_tables
+where schemaname = 'public'
+  and tablename = 'automation_runs';
+```
+
+Verify policies:
+
+```sql
+select
+  policyname,
+  cmd,
+  roles
+from pg_policies
+where schemaname = 'public'
+  and tablename = 'automation_runs';
+```
