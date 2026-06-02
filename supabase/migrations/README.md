@@ -267,3 +267,194 @@ from pg_policies
 where schemaname = 'public'
   and tablename = 'automation_runs';
 ```
+
+## 003 Opportunities RLS Review Visibility
+
+File:
+
+```text
+supabase/migrations/003_opportunities_rls_review_visibility.sql
+```
+
+Purpose:
+
+- Enforce review visibility at the database layer.
+- Allow public anon users to read only `review_status = 'approved'` opportunities.
+- Allow authenticated dashboard users to read, insert, update, and delete opportunities.
+- Keep service role ingestion and maintenance scripts working through RLS bypass.
+
+## Inspect Current Opportunities Policies Before Running 003
+
+Run this in Supabase SQL Editor before applying the migration:
+
+```sql
+select
+  schemaname,
+  tablename,
+  rowsecurity
+from pg_tables
+where schemaname = 'public'
+  and tablename = 'opportunities';
+
+select
+  policyname,
+  permissive,
+  roles,
+  cmd,
+  qual,
+  with_check
+from pg_policies
+where schemaname = 'public'
+  and tablename = 'opportunities'
+order by policyname;
+```
+
+Expected current issue:
+
+- RLS may be disabled, or
+- a broad public/anon select policy may allow pending rows.
+
+If the project has custom admin-role policies that are not represented in local migrations, review them before running the policy-removal block in `003_opportunities_rls_review_visibility.sql`.
+
+## How To Run 003 Manually
+
+1. Open the Supabase project dashboard.
+2. Go to SQL Editor.
+3. Inspect current `opportunities` policies using the SQL above.
+4. Open `003_opportunities_rls_review_visibility.sql` locally.
+5. Paste the SQL into Supabase SQL Editor.
+6. Review the SQL before running.
+7. Run it once.
+
+Do not run the rollback comments unless intentionally reverting the RLS fix.
+
+## 003 Verification SQL
+
+Verify RLS is enabled:
+
+```sql
+select
+  schemaname,
+  tablename,
+  rowsecurity
+from pg_tables
+where schemaname = 'public'
+  and tablename = 'opportunities';
+```
+
+Expected:
+
+```text
+rowsecurity = true
+```
+
+Verify policies:
+
+```sql
+select
+  policyname,
+  roles,
+  cmd,
+  qual,
+  with_check
+from pg_policies
+where schemaname = 'public'
+  and tablename = 'opportunities'
+order by policyname;
+```
+
+Expected policies:
+
+- `Public can read approved opportunities`
+- `Authenticated admins can read all opportunities`
+- `Authenticated admins can insert opportunities`
+- `Authenticated admins can update opportunities`
+- `Authenticated admins can delete opportunities`
+
+Verify opportunity rows still exist by review status:
+
+```sql
+select
+  review_status,
+  count(*) as row_count
+from public.opportunities
+group by review_status
+order by review_status;
+```
+
+## 003 JS Checks Summary
+
+Run these after applying the migration.
+
+Anon cannot read pending rows:
+
+```ts
+const { data, error } = await anon
+  .from("opportunities")
+  .select("id,title,review_status")
+  .eq("review_status", "pending");
+```
+
+Expected:
+
+```text
+error = null
+data = []
+```
+
+Anon can read approved rows:
+
+```ts
+const { data, error } = await anon
+  .from("opportunities")
+  .select("id,title,review_status")
+  .eq("review_status", "approved")
+  .limit(5);
+```
+
+Expected:
+
+```text
+error = null
+data contains approved opportunities
+```
+
+Authenticated dashboard can read pending rows:
+
+```ts
+const { data, error } = await authenticatedClient
+  .from("opportunities")
+  .select("id,title,review_status")
+  .eq("review_status", "pending");
+```
+
+Expected:
+
+```text
+error = null
+data contains pending opportunities
+```
+
+Public app still works:
+
+- Home page loads approved opportunities.
+- `/opportunities` loads approved opportunities.
+- Approved opportunity detail pages load.
+- Pending rows do not appear publicly.
+
+Production public check for the current second-batch pending rows:
+
+```powershell
+$html = Invoke-WebRequest -Uri https://buildnest-v2.vercel.app/opportunities -UseBasicParsing
+$html.Content -like "*DSU DEVHACK 3.0*"
+$html.Content -like "*HexaFalls 2*"
+$html.Content -like "*CodeStorm 2026 #2*"
+```
+
+Expected before approval:
+
+```text
+False
+False
+False
+```
