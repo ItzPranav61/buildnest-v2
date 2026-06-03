@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "backfill:links": "tsx scripts/backfill-external-links.ts",
+    "discord:opportunity": "tsx scripts/post-opportunity-to-discord.ts",
     "ingest": "tsx scripts/ingest.ts",
     "ingest:gssoc": "tsx scripts/ingest-gssoc.ts --source=gssoc"
   },
