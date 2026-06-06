@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { FiCalendar, FiExternalLink, FiMapPin } from "react-icons/fi";
 import { TrackedExternalLink } from "@/components/Analytics";
-import { formatDeadline, getStatusBadgeClass } from "@/lib/opportunity-utils";
+import { getOpportunityDeadlineLabel, getOpportunityLocationLabel } from "@/lib/opportunity-display";
+import { getStatusBadgeClass } from "@/lib/opportunity-utils";
 import type { Opportunity } from "@/types/opportunity";
 
 type OpportunityCardProps = {
@@ -11,6 +12,7 @@ type OpportunityCardProps = {
 export function OpportunityCard({ opportunity }: OpportunityCardProps) {
   const tags = Array.isArray(opportunity.tags) ? opportunity.tags : [];
   const detailHref = opportunity.id ? `/opportunity/${opportunity.id}` : null;
+  const locationLabel = getOpportunityLocationLabel(opportunity);
 
   return (
     <article className="w-full max-w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-xl shadow-black/10 backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:shadow-cyan-950/20 sm:p-5">
@@ -53,10 +55,10 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
 
       <div className="mt-5 flex min-w-0 flex-wrap items-center gap-4 border-t border-white/10 pt-4 text-sm font-semibold text-slate-400">
         <span className="inline-flex min-w-0 items-center gap-2 break-words">
-          <FiMapPin aria-hidden /> {opportunity.location}
+          <FiMapPin aria-hidden /> {locationLabel}: {opportunity.location}
         </span>
         <span className="inline-flex min-w-0 items-center gap-2 break-words">
-          <FiCalendar aria-hidden /> Apply by {formatDeadline(opportunity.deadline)}
+          <FiCalendar aria-hidden /> Deadline: {getOpportunityDeadlineLabel(opportunity)}
         </span>
       </div>
 

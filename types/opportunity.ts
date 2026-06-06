@@ -16,6 +16,9 @@ export type Opportunity = {
   scraped_at: string | null;
   review_status: ReviewStatus;
   is_automated: boolean;
+  posterUrl?: string | null;
+  deadlineLabel?: string | null;
+  locationLabel?: string | null;
 };
 
 export type OpportunityInsert = Omit<Opportunity, "id" | "source_url" | "source_name" | "scraped_at"> &

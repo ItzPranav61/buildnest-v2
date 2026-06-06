@@ -17,7 +17,8 @@ import {
 } from "react-icons/fi";
 import { PageViewTracker, TrackedExternalLink } from "@/components/Analytics";
 import { Navbar } from "@/components/Navbar";
-import { formatDeadline, getStatusBadgeClass, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
+import { getOpportunityDeadlineLabel } from "@/lib/opportunity-display";
+import { getStatusBadgeClass, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
 import { supabase } from "@/lib/supabase";
 import type { Opportunity } from "@/types/opportunity";
 
@@ -79,7 +80,7 @@ function GlassOpportunity({ opportunity }: { opportunity: Opportunity }) {
       </div>
       <p className="mt-4 text-sm leading-6 text-slate-300">{opportunity.description}</p>
       <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-400">
-        <FiCalendar aria-hidden /> Apply by {formatDeadline(opportunity.deadline)}
+        <FiCalendar aria-hidden /> Deadline: {getOpportunityDeadlineLabel(opportunity)}
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         {tags.map((tag) => (
@@ -248,7 +249,7 @@ export default async function HomePage() {
                           <p className="text-xs font-black uppercase text-slate-500">{opportunity.category}</p>
                           <p className="mt-1 break-words font-black text-white">{opportunity.title}</p>
                           <p className="mt-1 text-xs font-semibold text-slate-500">
-                            {formatDeadline(opportunity.deadline)}
+                            {getOpportunityDeadlineLabel(opportunity)}
                           </p>
                         </div>
                         <span className={`rounded-md px-3 py-1 text-xs font-black ${getStatusBadgeClass(opportunity.status)}`}>

@@ -3,7 +3,8 @@ import { FiArrowLeft, FiCalendar, FiExternalLink, FiMapPin } from "react-icons/f
 import { PageViewTracker, TrackedExternalLink } from "@/components/Analytics";
 import { Navbar } from "@/components/Navbar";
 import { OpportunityCard } from "@/components/OpportunityCard";
-import { formatDeadline, getStatusBadgeClass, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
+import { getOpportunityDeadlineLabel, getOpportunityLocationLabel, getOpportunityPosterUrl } from "@/lib/opportunity-display";
+import { getStatusBadgeClass, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
 import { supabase } from "@/lib/supabase";
 import type { Opportunity } from "@/types/opportunity";
 
@@ -46,6 +47,18 @@ function StatePanel({ title, description }: { title: string; description: string
         </div>
       </section>
     </main>
+  );
+}
+
+function OpportunityPoster({ posterUrl, title }: { posterUrl: string; title: string }) {
+  return (
+    <section className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-3 shadow-xl shadow-black/20 backdrop-blur">
+      <img
+        src={posterUrl}
+        alt={`${title} poster`}
+        className="h-auto max-h-[70vh] w-full rounded-xl border border-white/10 object-contain shadow-2xl shadow-blue-950/20"
+      />
+    </section>
   );
 }
 
@@ -97,6 +110,9 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
     return <StatePanel title="Opportunity not found" description="This opportunity may have been removed or is no longer available." />;
   }
 
+  const posterUrl = getOpportunityPosterUrl(opportunity);
+  const locationLabel = getOpportunityLocationLabel(opportunity);
+
   return (
     <main className="min-h-screen bg-[#040814] text-white">
       <PageViewTracker eventName="opportunity_detail_view" />
@@ -121,10 +137,10 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
 
             <div className="mt-7 flex min-w-0 flex-wrap gap-4 border-y border-white/10 py-5 text-sm font-semibold text-slate-400">
               <span className="inline-flex min-w-0 items-center gap-2 break-words">
-                <FiCalendar aria-hidden /> Apply by {formatDeadline(opportunity.deadline)}
+                <FiCalendar aria-hidden /> Deadline: {getOpportunityDeadlineLabel(opportunity)}
               </span>
               <span className="inline-flex min-w-0 items-center gap-2 break-words">
-                <FiMapPin aria-hidden /> {opportunity.location}
+                <FiMapPin aria-hidden /> {locationLabel}: {opportunity.location}
               </span>
             </div>
 
@@ -154,6 +170,11 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
           </article>
 
           <aside className="min-w-0">
+            {posterUrl ? (
+              <div className="mb-6">
+                <OpportunityPoster posterUrl={posterUrl} title={opportunity.title} />
+              </div>
+            ) : null}
             <h2 className="text-xl font-black text-white">Related opportunities</h2>
             <div className="mt-4 grid gap-4">
               {related.length > 0 ? (
