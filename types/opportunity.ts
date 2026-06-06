@@ -19,6 +19,8 @@ export type Opportunity = {
   posterUrl?: string | null;
   deadlineLabel?: string | null;
   locationLabel?: string | null;
+  referralCode?: string | null;
+  discordUrl?: string | null;
 };
 
 export type OpportunityInsert = Omit<Opportunity, "id" | "source_url" | "source_name" | "scraped_at"> &

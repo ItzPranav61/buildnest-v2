@@ -3,7 +3,8 @@ import { FiArrowLeft, FiCalendar, FiExternalLink, FiMapPin } from "react-icons/f
 import { PageViewTracker, TrackedExternalLink } from "@/components/Analytics";
 import { Navbar } from "@/components/Navbar";
 import { OpportunityCard } from "@/components/OpportunityCard";
-import { getOpportunityDeadlineLabel, getOpportunityLocationLabel, getOpportunityPosterUrl } from "@/lib/opportunity-display";
+import { ReferralCodeCard } from "@/components/ReferralCodeCard";
+import { getOpportunityDeadlineLabel, getOpportunityDiscordUrl, getOpportunityLocationLabel, getOpportunityPosterUrl, getOpportunityReferralCode } from "@/lib/opportunity-display";
 import { getStatusBadgeClass, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
 import { supabase } from "@/lib/supabase";
 import type { Opportunity } from "@/types/opportunity";
@@ -62,6 +63,22 @@ function OpportunityPoster({ posterUrl, title }: { posterUrl: string; title: str
   );
 }
 
+function CommunityLinkCard({ url }: { url: string }) {
+  return (
+    <section className="rounded-2xl border border-indigo-300/20 bg-indigo-300/[0.07] p-5 shadow-xl shadow-indigo-950/10 backdrop-blur">
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-200">Community</p>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200/25 bg-indigo-200/10 px-4 py-2 text-sm font-black text-indigo-50 transition hover:bg-indigo-200/15"
+      >
+        Join CodeStorm Discord Community <FiExternalLink aria-hidden />
+      </a>
+    </section>
+  );
+}
+
 async function getOpportunity(id: string) {
   const { data, error } = await supabase
     .from("opportunities")
@@ -112,6 +129,8 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
 
   const posterUrl = getOpportunityPosterUrl(opportunity);
   const locationLabel = getOpportunityLocationLabel(opportunity);
+  const referralCode = getOpportunityReferralCode(opportunity);
+  const discordUrl = getOpportunityDiscordUrl(opportunity);
 
   return (
     <main className="min-h-screen bg-[#040814] text-white">
@@ -173,6 +192,16 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
             {posterUrl ? (
               <div className="mb-6">
                 <OpportunityPoster posterUrl={posterUrl} title={opportunity.title} />
+              </div>
+            ) : null}
+            {referralCode ? (
+              <div className="mb-6">
+                <ReferralCodeCard code={referralCode} />
+              </div>
+            ) : null}
+            {discordUrl ? (
+              <div className="mb-6">
+                <CommunityLinkCard url={discordUrl} />
               </div>
             ) : null}
             <h2 className="text-xl font-black text-white">Related opportunities</h2>
