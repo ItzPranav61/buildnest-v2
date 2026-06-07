@@ -9,6 +9,7 @@ const opportunityDisplayOverrides: Record<
     locationLabel?: string;
     referralCode?: string;
     discordUrl?: string;
+    highlights?: string[];
   }
 > = {
   "45a4f07d-47fa-4d2d-a118-d131c87f8e61": {
@@ -16,7 +17,8 @@ const opportunityDisplayOverrides: Record<
     deadlineLabel: "30 Jun 2026, 11:59 PM IST",
     locationLabel: "Format",
     referralCode: "BUILDNEST",
-    discordUrl: "https://discord.gg/jhX8TSURsG"
+    discordUrl: "https://discord.gg/jhX8TSURsG",
+    highlights: ["Winner prizes available", "Participation certificates for participants"]
   }
 };
 
@@ -42,4 +44,8 @@ export function getOpportunityReferralCode(opportunity: Opportunity) {
 
 export function getOpportunityDiscordUrl(opportunity: Opportunity) {
   return opportunity.discordUrl ?? displayOverride(opportunity)?.discordUrl ?? null;
+}
+
+export function getOpportunityHighlights(opportunity: Opportunity) {
+  return opportunity.highlights ?? displayOverride(opportunity)?.highlights ?? [];
 }

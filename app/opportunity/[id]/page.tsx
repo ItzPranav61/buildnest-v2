@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { FiArrowLeft, FiCalendar, FiExternalLink, FiMapPin } from "react-icons/fi";
+import { FiArrowLeft, FiAward, FiCalendar, FiExternalLink, FiMapPin } from "react-icons/fi";
 import { PageViewTracker, TrackedExternalLink } from "@/components/Analytics";
 import { Navbar } from "@/components/Navbar";
 import { OpportunityCard } from "@/components/OpportunityCard";
 import { ReferralCodeCard } from "@/components/ReferralCodeCard";
-import { getOpportunityDeadlineLabel, getOpportunityDiscordUrl, getOpportunityLocationLabel, getOpportunityPosterUrl, getOpportunityReferralCode } from "@/lib/opportunity-display";
+import { getOpportunityDeadlineLabel, getOpportunityDiscordUrl, getOpportunityHighlights, getOpportunityLocationLabel, getOpportunityPosterUrl, getOpportunityReferralCode } from "@/lib/opportunity-display";
 import { getStatusBadgeClass, sortOpportunitiesByDeadline } from "@/lib/opportunity-utils";
 import { supabase } from "@/lib/supabase";
 import type { Opportunity } from "@/types/opportunity";
@@ -131,6 +131,7 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
   const locationLabel = getOpportunityLocationLabel(opportunity);
   const referralCode = getOpportunityReferralCode(opportunity);
   const discordUrl = getOpportunityDiscordUrl(opportunity);
+  const highlights = getOpportunityHighlights(opportunity);
 
   return (
     <main className="min-h-screen bg-[#040814] text-white">
@@ -174,6 +175,21 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
             ) : null}
 
             <p className="mt-7 whitespace-pre-wrap break-words text-base leading-8 text-slate-300">{opportunity.description}</p>
+
+            {highlights.length > 0 ? (
+              <section className="mt-7 rounded-2xl border border-amber-200/20 bg-amber-200/[0.07] p-5 shadow-xl shadow-amber-950/10">
+                <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-amber-200">
+                  <FiAward aria-hidden /> Certificates And Prizes
+                </p>
+                <ul className="mt-3 grid gap-2 text-sm font-semibold leading-6 text-slate-200">
+                  {highlights.map((highlight) => (
+                    <li key={highlight} className="break-words">
+                      {highlight}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
 
             {opportunity.external_link ? (
               <TrackedExternalLink
