@@ -2,6 +2,11 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  duplicateCheckSignature,
+  findPossibleDuplicateOpportunities,
+  type DuplicateMatch
+} from "@/lib/opportunity-duplicates";
 import { isValidExternalLink, normalizeExternalLink } from "@/lib/opportunity-utils";
 import { supabase } from "@/lib/supabase";
 import type { OpportunityInsert } from "@/types/opportunity";
@@ -19,13 +24,20 @@ const requiredFields = ["title", "organization", "category", "status"] as const;
 
 type FieldErrors = Partial<Record<(typeof requiredFields)[number] | "external_link", string>>;
 
+type DuplicateWarning = {
+  signature: string;
+  matches: DuplicateMatch[];
+};
+
 export function OpportunityForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [duplicateWarning, setDuplicateWarning] = useState<DuplicateWarning | null>(null);
 
   function clearFieldError(name: keyof FieldErrors) {
+    setDuplicateWarning(null);
     setFieldErrors((current) => {
       const next = { ...current };
       delete next[name];
@@ -86,6 +98,28 @@ export function OpportunityForm() {
       review_status: "approved",
       is_automated: false
     };
+
+    const signature = duplicateCheckSignature(opportunity);
+
+    if (duplicateWarning?.signature !== signature) {
+      const { data: existingRows, error: duplicateError } = await supabase
+        .from("opportunities")
+        .select("id, title, organization, external_link, review_status");
+
+      if (duplicateError) {
+        setError(`Unable to check possible duplicates: ${duplicateError.message}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      const matches = findPossibleDuplicateOpportunities(opportunity, existingRows ?? []);
+
+      if (matches.length > 0) {
+        setDuplicateWarning({ signature, matches });
+        setIsSubmitting(false);
+        return;
+      }
+    }
 
     const { error: insertError } = await supabase.from("opportunities").insert(opportunity);
 
@@ -155,6 +189,7 @@ export function OpportunityForm() {
         <textarea
           name="description"
           required
+          onChange={() => setDuplicateWarning(null)}
           className="min-h-32 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
           placeholder="Describe who this is for, what students will build, and what they receive."
         />
@@ -165,6 +200,7 @@ export function OpportunityForm() {
         <input
           name="tags"
           required
+          onChange={() => setDuplicateWarning(null)}
           className="min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition duration-200 placeholder:text-slate-500 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
           placeholder="React, Figma, AI, GitHub"
         />
@@ -191,12 +227,32 @@ export function OpportunityForm() {
         </div>
       ) : null}
 
+      {duplicateWarning ? (
+        <div className="mt-4 rounded-xl border border-amber-300/30 bg-amber-300/[0.08] p-4 text-sm font-semibold text-amber-50">
+          <p className="font-black">Possible duplicate opportunity</p>
+          <p className="mt-2 leading-6 text-amber-100/90">
+            This looks similar to an existing opportunity. Review it before saving. You can submit again to save anyway.
+          </p>
+          <ul className="mt-3 grid gap-2">
+            {duplicateWarning.matches.map((match) => (
+              <li key={`${match.row.id ?? match.row.title}-${match.matchedBy}`} className="rounded-lg border border-white/10 bg-[#040814]/60 p-3">
+                <span className="block break-words font-black text-white">{match.row.title}</span>
+                <span className="mt-1 block break-words text-xs text-amber-100/80">
+                  {match.row.organization} - matched by {match.matchedBy === "external_link" ? "external link" : "title + organization"}
+                  {match.row.review_status ? ` - ${match.row.review_status}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <button
         type="submit"
         disabled={isSubmitting}
         className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-gradient-to-r from-cyan-300 to-blue-400 px-5 py-3 text-sm font-black text-slate-950 transition duration-200 hover:from-cyan-200 hover:to-blue-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
       >
-        {isSubmitting ? "Saving..." : "Add opportunity"}
+        {isSubmitting ? "Saving..." : duplicateWarning ? "Save anyway" : "Add opportunity"}
       </button>
     </form>
   );
